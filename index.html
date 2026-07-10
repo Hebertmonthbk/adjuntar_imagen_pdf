@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adjuntar imagen a PDF</title>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 550px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: 600;
+        }
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f9f9f9;
+        }
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f0f3ff;
+        }
+        .upload-area input[type="file"] {
+            display: none;
+        }
+        .upload-icon {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .upload-text {
+            color: #555;
+            font-size: 16px;
+        }
+        .upload-text strong {
+            color: #667eea;
+        }
+        .file-info {
+            margin-top: 20px;
+            padding: 12px;
+            background: #f0f3ff;
+            border-radius: 8px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .file-info.show {
+            display: flex;
+        }
+        .file-name {
+            color: #333;
+            font-size: 14px;
+            word-break: break-all;
+            flex: 1;
+        }
+        .file-size {
+            color: #888;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .remove-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 12px;
+            transition: all 0.2s;
+        }
+        .remove-btn:hover {
+            background: #e0313f;
+        }
+        .position-controls {
+            margin-top: 25px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+        .position-controls label {
+            font-size: 14px;
+            color: #555;
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .position-controls input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .position-controls input:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        .position-row {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        .position-row .input-group {
+            flex: 1;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 25px;
+        }
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+            text-align: center;
+            font-size: 14px;
+        }
+        .status.show {
+            display: block;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffc107;
+        }
+        .footer-note {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            margin-top: 15px;
+            overflow: hidden;
+            display: none;
+        }
+        .progress-bar.show {
+            display: block;
+        }
+        .progress-bar .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+            .position-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📎 Adjuntar imagen a PDF</h1>
+    <p class="subtitle">La imagen se añadirá como una nueva página al final del PDF</p>
+
+    <!-- Zona de carga de PDF -->
+    <div class="upload-area" id="pdfUploadArea">
+        <div class="upload-icon">📄</div>
+        <div class="upload-text">
+            <strong>Seleccionar PDF</strong> o arrastrar aquí
+        </div>
+        <input type="file" id="pdfInput" accept=".pdf">
+    </div>
+
+    <!-- Información del PDF cargado -->
+    <div class="file-info" id="pdfFileInfo">
+        <span class="file-name" id="pdfFileName">documento.pdf</span>
+        <span class="file-size" id="pdfFileSize">0 KB</span>
+        <button class="remove-btn" id="removePdfBtn">✕</button>
+    </div>
+
+    <!-- Zona de carga de imagen -->
+    <div class="upload-area" id="imageUploadArea" style="margin-top:15px;">
+        <div class="upload-icon">🖼️</div>
+        <div class="upload-text">
+            <strong>Seleccionar imagen</strong> (PNG, JPG, JPEG)
+        </div>
+        <input type="file" id="imageInput" accept="image/*">
+    </div>
+
+    <!-- Información de la imagen cargada -->
+    <div class="file-info" id="imageFileInfo">
+        <span class="file-name" id="imageFileName">imagen.png</span>
+        <span class="file-size" id="imageFileSize">0 KB</span>
+        <button class="remove-btn" id="removeImageBtn">✕</button>
+    </div>
+
+    <!-- Controles de posición -->
+    <div class="position-controls">
+        <label>✏️ Opciones de inserción</label>
+        <div class="position-row">
+            <div class="input-group">
+                <label style="font-size:12px; margin-bottom:2px;">Posición X (px)</label>
+                <input type="number" id="posX" value="50" min="0" step="1">
+            </div>
+            <div class="input-group">
+                <label style="font-size:12px; margin-bottom:2px;">Posición Y (px)</label>
+                <input type="number" id="posY" value="50" min="0" step="1">
+            </div>
+        </div>
+        <div style="margin-top:10px;">
+            <label style="font-size:12px; margin-bottom:2px;">Tamaño (porcentaje)</label>
+            <input type="number" id="imageScale" value="50" min="10" max="100" step="5">
+        </div>
+    </div>
+
+    <!-- Botón para procesar -->
+    <button class="btn" id="processBtn" disabled>🔄 Adjuntar imagen al PDF</button>
+
+    <!-- Barra de progreso -->
+    <div class="progress-bar" id="progressBar">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <!-- Mensaje de estado -->
+    <div class="status" id="status"></div>
+
+    <div class="footer-note">
+        El PDF se descargará automáticamente con la imagen adjunta como nueva página
+    </div>
+</div>
+
+<script>
+    (function() {
+        // Elementos DOM
+        const pdfInput = document.getElementById('pdfInput');
+        const imageInput = document.getElementById('imageInput');
+        const pdfUploadArea = document.getElementById('pdfUploadArea');
+        const imageUploadArea = document.getElementById('imageUploadArea');
+        const pdfFileInfo = document.getElementById('pdfFileInfo');
+        const imageFileInfo = document.getElementById('imageFileInfo');
+        const pdfFileName = document.getElementById('pdfFileName');
+        const imageFileName = document.getElementById('imageFileName');
+        const pdfFileSize = document.getElementById('pdfFileSize');
+        const imageFileSize = document.getElementById('imageFileSize');
+        const removePdfBtn = document.getElementById('removePdfBtn');
+        const removeImageBtn = document.getElementById('removeImageBtn');
+        const processBtn = document.getElementById('processBtn');
+        const status = document.getElementById('status');
+        const posX = document.getElementById('posX');
+        const posY = document.getElementById('posY');
+        const imageScale = document.getElementById('imageScale');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+
+        let pdfFile = null;
+        let imageFile = null;
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 KB';
+            const k = 1024;
+            const sizes = ['KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function showStatus(message, type = 'info') {
+            status.textContent = message;
+            status.className = 'status show ' + type;
+        }
+
+        function hideStatus() {
+            status.className = 'status';
+            status.textContent = '';
+        }
+
+        function updateProgress(percent) {
+            progressBar.classList.add('show');
+            progressFill.style.width = percent + '%';
+        }
+
+        function hideProgress() {
+            progressBar.classList.remove('show');
+            progressFill.style.width = '0%';
+        }
+
+        function updateProcessButton() {
+            processBtn.disabled = !(pdfFile && imageFile);
+        }
+
+        // === FUNCIÓN DE DESCARGA MEJORADA ===
+        function downloadPDF(data, filename) {
+            try {
+                // Crear el blob
+                const blob = new Blob([data], { type: 'application/pdf' });
+                
+                // Verificar tamaño del blob
+                if (blob.size === 0) {
+                    throw new Error('El archivo generado está vacío');
+                }
+
+                // Método 1: Usar URL.createObjectURL (más compatible)
+                const url = URL.createObjectURL(blob);
+                
+                // Crear elemento <a> y forzar clic
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.style.display = 'none';
+                
+                // Añadir al DOM, forzar clic y eliminar
+                document.body.appendChild(link);
+                link.click();
+                
+                // Limpiar después de un delay
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                }, 100);
+
+                return true;
+            } catch (error) {
+                console.error('Error en descarga:', error);
+                return false;
+            }
+        }
+
+        // === FUNCIÓN DE DESCARGA ALTERNATIVA (para navegadores que bloquean el método anterior) ===
+        function downloadPDFAlternative(data, filename) {
+            try {
+                const blob = new Blob([data], { type: 'application/pdf' });
+                
+                // Usar el objeto window para abrir en nueva pestaña
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const win = window.open();
+                    if (win) {
+                        win.document.write(
+                            '<iframe src="' + e.target.result + 
+                            '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>'
+                        );
+                        // Forzar descarga desde el iframe
+                        setTimeout(() => {
+                            const link = win.document.createElement('a');
+                            link.href = e.target.result;
+                            link.download = filename;
+                            link.click();
+                        }, 500);
+                    } else {
+                        // Si el navegador bloquea popups, usar el método directo
+                        const link = document.createElement('a');
+                        link.href = e.target.result;
+                        link.download = filename;
+                        link.click();
+                    }
+                };
+                reader.readAsDataURL(blob);
+                return true;
+            } catch (error) {
+                console.error('Error en descarga alternativa:', error);
+                return false;
+            }
+        }
+
+        function resetPDF() {
+            pdfFile = null;
+            pdfFileInfo.classList.remove('show');
+            pdfInput.value = '';
+            hideStatus();
+            hideProgress();
+            updateProcessButton();
+        }
+
+        function resetImage() {
+            imageFile = null;
+            imageFileInfo.classList.remove('show');
+            imageInput.value = '';
+            hideStatus();
+            hideProgress();
+            updateProcessButton();
+        }
+
+        // === MANEJO DE PDF ===
+        pdfUploadArea.addEventListener('click', () => pdfInput.click());
+
+        pdfUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            pdfUploadArea.style.borderColor = '#667eea';
+        });
+
+        pdfUploadArea.addEventListener('dragleave', () => {
+            pdfUploadArea.style.borderColor = '#ccc';
+        });
+
+        pdfUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            pdfUploadArea.style.borderColor = '#ccc';
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type === 'application/pdf') {
+                handlePDFFile(files[0]);
+            } else {
+                showStatus('Por favor, arrastra un archivo PDF válido.', 'error');
+            }
+        });
+
+        pdfInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handlePDFFile(e.target.files[0]);
+            }
+        });
+
+        function handlePDFFile(file) {
+            if (file.type !== 'application/pdf') {
+                showStatus('El archivo no es un PDF válido.', 'error');
+                return;
+            }
+            pdfFile = file;
+            pdfFileName.textContent = file.name;
+            pdfFileSize.textContent = formatSize(file.size);
+            pdfFileInfo.classList.add('show');
+            hideStatus();
+            updateProcessButton();
+        }
+
+        removePdfBtn.addEventListener('click', resetPDF);
+
+        // === MANEJO DE IMAGEN ===
+        imageUploadArea.addEventListener('click', () => imageInput.click());
+
+        imageUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            imageUploadArea.style.borderColor = '#667eea';
+        });
+
+        imageUploadArea.addEventListener('dragleave', () => {
+            imageUploadArea.style.borderColor = '#ccc';
+        });
+
+        imageUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            imageUploadArea.style.borderColor = '#ccc';
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                handleImageFile(files[0]);
+            } else {
+                showStatus('Por favor, arrastra una imagen válida.', 'error');
+            }
+        });
+
+        imageInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleImageFile(e.target.files[0]);
+            }
+        });
+
+        function handleImageFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showStatus('El archivo no es una imagen válida.', 'error');
+                return;
+            }
+            if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+                showStatus('Solo se permiten imágenes PNG, JPG o JPEG.', 'error');
+                return;
+            }
+            imageFile = file;
+            imageFileName.textContent = file.name;
+            imageFileSize.textContent = formatSize(file.size);
+            imageFileInfo.classList.add('show');
+            hideStatus();
+            updateProcessButton();
+        }
+
+        removeImageBtn.addEventListener('click', resetImage);
+
+        // === PROCESAR PDF ===
+        processBtn.addEventListener('click', async () => {
+            if (!pdfFile || !imageFile) {
+                showStatus('Faltan archivos. Selecciona un PDF y una imagen.', 'error');
+                return;
+            }
+
+            const x = parseInt(posX.value) || 50;
+            const y = parseInt(posY.value) || 50;
+            const scale = parseInt(imageScale.value) || 50;
+
+            if (x < 0 || y < 0) {
+                showStatus('Las posiciones X e Y deben ser valores positivos.', 'error');
+                return;
+            }
+
+            if (scale < 10 || scale > 100) {
+                showStatus('El tamaño debe estar entre 10% y 100%.', 'error');
+                return;
+            }
+
+            processBtn.disabled = true;
+            processBtn.textContent = '⏳ Procesando...';
+            showStatus('Iniciando procesamiento...', 'info');
+            updateProgress(0);
+
+            try {
+                // Paso 1: Cargar PDF
+                updateProgress(10);
+                showStatus('Cargando archivo PDF...', 'info');
+                const pdfArrayBuffer = await pdfFile.arrayBuffer();
+                updateProgress(25);
+
+                // Paso 2: Cargar imagen
+                showStatus('Cargando imagen...', 'info');
+                const imageArrayBuffer = await imageFile.arrayBuffer();
+                updateProgress(40);
+
+                // Paso 3: Procesar PDF
+                showStatus('Procesando PDF...', 'info');
+                const { PDFDocument } = PDFLib;
+                const pdfDoc = await PDFDocument.load(pdfArrayBuffer);
+                updateProgress(55);
+
+                // Paso 4: Procesar imagen
+                showStatus('Procesando imagen...', 'info');
+                let imageType = 'png';
+                if (imageFile.type === 'image/jpeg' || imageFile.type === 'image/jpg') {
+                    imageType = 'jpg';
+                }
+
+                let image;
+                if (imageType === 'png') {
+                    image = await pdfDoc.embedPng(imageArrayBuffer);
+                } else {
+                    image = await pdfDoc.embedJpg(imageArrayBuffer);
+                }
+                updateProgress(70);
+
+                // Paso 5: Crear página y dibujar
+                showStatus('Creando nueva página...', 'info');
+                const imgWidth = image.width;
+                const imgHeight = image.height;
+                const scaleFactor = scale / 100;
+                const newWidth = imgWidth * scaleFactor;
+                const newHeight = imgHeight * scaleFactor;
+
+                const pages = pdfDoc.getPages();
+                const firstPage = pages[0];
+                const pageWidth = firstPage.getWidth();
+                const pageHeight = firstPage.getHeight();
+
+                const newPage = pdfDoc.addPage([pageWidth, pageHeight]);
+                newPage.drawImage(image, {
+                    x: x,
+                    y: y,
+                    width: newWidth,
+                    height: newHeight,
+                });
+                updateProgress(85);
+
+                // Paso 6: Guardar PDF
+                showStatus('Guardando PDF final...', 'info');
+                const pdfBytes = await pdfDoc.save();
+                updateProgress(95);
+
+                // Paso 7: Descargar
+                showStatus('Descargando archivo...', 'info');
+                const fileName = pdfFile.name.replace('.pdf', '') + '_con_imagen.pdf';
+
+                // Intentar descarga con el método principal
+                let downloadSuccess = downloadPDF(pdfBytes, fileName);
+
+                // Si falla, intentar con el método alternativo
+                if (!downloadSuccess) {
+                    showStatus('Usando método alternativo de descarga...', 'warning');
+                    downloadPDFAlternative(pdfBytes, fileName);
+                }
+
+                updateProgress(100);
+                
+                setTimeout(() => {
+                    showStatus(`✅ ¡PDF generado exitosamente!`, 'success');
+                    processBtn.textContent = '✅ ¡Completado!';
+                    setTimeout(() => {
+                        processBtn.textContent = '🔄 Adjuntar imagen al PDF';
+                        hideProgress();
+                    }, 3000);
+                }, 500);
+
+            } catch (error) {
+                console.error('Error detallado:', error);
+                showStatus('❌ Error al procesar: ' + error.message, 'error');
+                processBtn.textContent = '🔄 Adjuntar imagen al PDF';
+                hideProgress();
+            } finally {
+                processBtn.disabled = false;
+            }
+        });
+
+        updateProcessButton();
+
+        // Validar entradas numéricas
+        [posX, posY, imageScale].forEach(input => {
+            input.addEventListener('input', () => {
+                let val = parseInt(input.value);
+                if (isNaN(val) || val < 0) {
+                    input.value = 0;
+                }
+                if (input === imageScale) {
+                    if (val > 100) input.value = 100;
+                    if (val < 10) input.value = 10;
+                }
+            });
+        });
+
+    })();
+</script>
+
+</body>
+</html>
+Commit new file
