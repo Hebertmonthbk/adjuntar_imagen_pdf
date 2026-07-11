@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <!-- Librería Tesseract.js para OCR -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Adjuntar imagen a PDF</title>
@@ -527,6 +529,61 @@
         });
 
         function handleImageFile(file) {
+            // === FUNCIÓN PARA EXTRAER FOLIO SIAC DE LA IMAGEN ===
+async function extractFolioFromImage(imageFile) {
+    try {
+        showStatus('🔍 Leyendo Folio SIAC de la imagen...', 'info');
+        
+        // Crear un objeto URL para la imagen
+        const imageUrl = URL.createObjectURL(imageFile);
+        
+        // Usar Tesseract.js para OCR
+        const result = await Tesseract.recognize(imageUrl, 'spa', {
+            logger: (m) => {
+                if (m.status === 'recognizing text') {
+                    // Actualizar progreso del OCR
+                    const progress = Math.round(m.progress * 100);
+                    updateProgress(40 + (progress * 0.3));
+                }
+            }
+        });
+        
+        // Limpiar URL
+        URL.revokeObjectURL(imageUrl);
+        
+        // Obtener el texto extraído
+        const text = result.data.text;
+        console.log('Texto extraído:', text);
+        
+        // Buscar el Folio SIAC con expresión regular
+        // Patrón: "Folio SIAC:" seguido de números
+        const folioRegex = /Folio\s*SIAC\s*[:]\s*(\d+)/i;
+        const match = text.match(folioRegex);
+        
+        if (match && match[1]) {
+            const folio = match[1];
+            showStatus(`✅ Folio SIAC encontrado: ${folio}`, 'success');
+            return folio;
+        } else {
+            // Si no encuentra, buscar solo números después de "SIAC"
+            const simpleRegex = /SIAC\s*[:]?\s*(\d+)/i;
+            const simpleMatch = text.match(simpleRegex);
+            if (simpleMatch && simpleMatch[1]) {
+                const folio = simpleMatch[1];
+                showStatus(`✅ Folio SIAC encontrado: ${folio}`, 'success');
+                return folio;
+            }
+            
+            showStatus('⚠️ No se encontró Folio SIAC en la imagen', 'warning');
+            return null;
+        }
+        
+    } catch (error) {
+        console.error('Error en OCR:', error);
+        showStatus('⚠️ Error al leer la imagen: ' + error.message, 'error');
+        return null;
+    }
+}
             if (!file.type.startsWith('image/')) {
                 showStatus('El archivo no es una imagen válida.', 'error');
                 return;
