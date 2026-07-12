@@ -27,21 +27,21 @@
             background: white;
             border-radius: 20px;
             padding: 40px;
-            max-width: 600px;
+            max-width: 650px;
             width: 100%;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
         h1 {
             color: #333;
             font-size: 24px;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             text-align: center;
             font-weight: 600;
         }
         .subtitle {
             color: #666;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             font-size: 14px;
         }
         .upload-area {
@@ -256,6 +256,26 @@
             max-height: 200px;
             border-radius: 8px;
         }
+        .detected-text {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 12px;
+            color: #555;
+            border: 1px solid #ddd;
+        }
+        .detected-text.show {
+            display: block;
+        }
+        .detected-text .title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
         @media (max-width: 480px) {
             .container {
                 padding: 20px;
@@ -304,6 +324,12 @@
     <!-- Vista previa de la imagen -->
     <div class="file-preview" id="imagePreview">
         <img id="previewImage" alt="Vista previa de la imagen">
+    </div>
+
+    <!-- Texto detectado -->
+    <div class="detected-text" id="detectedText">
+        <div class="title">📝 Texto detectado en la imagen:</div>
+        <div id="detectedTextContent"></div>
     </div>
 
     <!-- Información del Folio SIAC -->
@@ -363,6 +389,8 @@
         const clearNombreBtn = document.getElementById('clearNombreBtn');
         const imagePreview = document.getElementById('imagePreview');
         const previewImage = document.getElementById('previewImage');
+        const detectedText = document.getElementById('detectedText');
+        const detectedTextContent = document.getElementById('detectedTextContent');
 
         // Variables
         let pdfFile = null;
@@ -460,13 +488,156 @@
             }
         }
 
-        // === FUNCIÓN PARA EXTRAER DATOS DE LA IMAGEN ===
+        // === FUNCIÓN MEJORADA PARA EXTRAER FOLIO SIAC CON MÚLTIPLES VARIACIONES ===
+        function extractFolioFromText(text) {
+            // Limpiar el texto: eliminar caracteres especiales y normalizar espacios
+            const cleanText = text.replace(/\s+/g, ' ').trim();
+            
+            // Array de patrones para buscar el Folio SIAC (ordenados por prioridad)
+            const patterns = [
+                // Patrón 1: "Folio SIAC: 123456789" (más común)
+                { regex: /Folio\s*SIAC\s*[:;]\s*(\d{9,})/i, description: 'Formato estándar' },
+                // Patrón 2: "SIAC: 123456789"
+                { regex: /SIAC\s*[:;]\s*(\d{9,})/i, description: 'Formato corto' },
+                // Patrón 3: "Folio: 123456789"
+                { regex: /Folio\s*[:;]\s*(\d{9,})/i, description: 'Solo Folio' },
+                // Patrón 4: "Número de Folio: 123456789"
+                { regex: /Número\s*de\s*Folio\s*[:;]\s*(\d{9,})/i, description: 'Número de Folio' },
+                // Patrón 5: "Folio SIAC 123456789" (sin dos puntos)
+                { regex: /Folio\s*SIAC\s*(\d{9,})/i, description: 'Sin dos puntos' },
+                // Patrón 6: "SIAC 123456789" (sin dos puntos)
+                { regex: /SIAC\s*(\d{9,})/i, description: 'SIAC sin dos puntos' },
+                // Patrón 7: "FOLIO: 123456789" (mayúsculas)
+                { regex: /FOLIO\s*[:;]\s*(\d{9,})/i, description: 'Mayúsculas' },
+                // Patrón 8: "folio: 123456789" (minúsculas)
+                { regex: /folio\s*[:;]\s*(\d{9,})/i, description: 'Minúsculas' },
+                // Patrón 9: Buscar cualquier número de 9 dígitos después de la palabra SIAC
+                { regex: /SIAC.*?(\d{9,})/i, description: 'SIAC seguido de números' },
+                // Patrón 10: Buscar cualquier número de 9 dígitos después de la palabra Folio
+                { regex: /Folio.*?(\d{9,})/i, description: 'Folio seguido de números' },
+                // Patrón 11: Buscar números de 9 dígitos que parezcan folio (con contexto)
+                { regex: /(?:folio|siac|expediente|numero)\s*[:;]?\s*(\d{9,})/i, description: 'Contexto variado' },
+                // Patrón 12: Buscar números de 9 dígitos con guiones o espacios
+                { regex: /(?:folio|siac)\s*[:;]?\s*(\d{3,4}[\s\-]?\d{3,4}[\s\-]?\d{3,4})/i, description: 'Con guiones o espacios' }
+            ];
+
+            // Intentar cada patrón
+            for (let pattern of patterns) {
+                const match = cleanText.match(pattern.regex);
+                if (match && match[1]) {
+                    // Limpiar el número encontrado (eliminar espacios, guiones, etc.)
+                    let folio = match[1].replace(/[\s\-]/g, '');
+                    // Verificar que sea un número válido de al menos 6 dígitos
+                    if (/^\d{6,}$/.test(folio)) {
+                        console.log(`✅ Folio encontrado con patrón: ${pattern.description} -> ${folio}`);
+                        return folio;
+                    }
+                }
+            }
+
+            // Si no se encontró con los patrones específicos, buscar cualquier número de 9 dígitos
+            const fallbackRegex = /\b(\d{9,})\b/g;
+            const fallbackMatches = cleanText.matchAll(fallbackRegex);
+            for (const match of fallbackMatches) {
+                if (match && match[1]) {
+                    // Verificar que sea un número de al menos 6 dígitos
+                    if (/^\d{6,}$/.test(match[1])) {
+                        console.log(`✅ Folio encontrado (fallback): ${match[1]}`);
+                        return match[1];
+                    }
+                }
+            }
+
+            console.log('❌ No se encontró ningún Folio SIAC');
+            return null;
+        }
+
+        // === FUNCIÓN MEJORADA PARA EXTRAER NOMBRE DEL CLIENTE ===
+        function extractNombreFromText(text) {
+            // Limpiar el texto
+            const cleanText = text.replace(/\s+/g, ' ').trim();
+            const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+            // Buscar la sección "Datos de contacto"
+            let contactoIndex = -1;
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].toLowerCase();
+                if (line.includes('datos de contacto') || 
+                    line.includes('datos del cliente') ||
+                    line.includes('información del cliente') ||
+                    line.includes('contacto')) {
+                    contactoIndex = i;
+                    break;
+                }
+            }
+
+            // Si encontró "Datos de contacto", buscar el nombre en las siguientes líneas
+            if (contactoIndex !== -1) {
+                // Palabras clave para ignorar
+                const keywords = ['celular', 'correo', 'email', 'e-mail', 'teléfono', 'telefono', 
+                                 'contacto', 'domicilio', 'dirección', 'direccion', 'ciudad',
+                                 'estado', 'municipio', 'colonia', 'cp', 'código postal'];
+
+                for (let i = contactoIndex + 1; i < lines.length; i++) {
+                    const line = lines[i];
+                    // Verificar que la línea no contenga palabras clave
+                    const hasKeyword = keywords.some(keyword => line.toLowerCase().includes(keyword));
+                    
+                    // Verificar que la línea tenga más de 5 caracteres y menos de 100
+                    if (!hasKeyword && line.length > 5 && line.length < 100) {
+                        // Verificar que contenga letras (no solo números)
+                        if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(line)) {
+                            // Limpiar el nombre
+                            let nombre = line
+                                .replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
+                                .replace(/\s+/g, ' ')
+                                .trim()
+                                .toUpperCase();
+                            
+                            if (nombre.length > 3) {
+                                console.log(`✅ Nombre encontrado: ${nombre}`);
+                                return nombre;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Si no encontró por "Datos de contacto", buscar líneas que parezcan nombres
+            // Buscar líneas que contengan nombre completo (2 o más palabras, con mayúsculas)
+            const nombrePattern = /^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)?/;
+            for (const line of lines) {
+                // Ignorar líneas que contengan palabras clave
+                const keywords = ['CELULAR', 'CORREO', 'EMAIL', 'TELÉFONO', 'TELEFONO', 
+                                 'CONTACTO', 'DOMICILIO', 'DIRECCIÓN', 'DIRECCION'];
+                const hasKeyword = keywords.some(keyword => line.toUpperCase().includes(keyword));
+                
+                if (!hasKeyword && nombrePattern.test(line)) {
+                    let nombre = line
+                        .replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
+                        .replace(/\s+/g, ' ')
+                        .trim()
+                        .toUpperCase();
+                    
+                    if (nombre.length > 5) {
+                        console.log(`✅ Nombre encontrado (fallback): ${nombre}`);
+                        return nombre;
+                    }
+                }
+            }
+
+            console.log('❌ No se encontró nombre de cliente');
+            return null;
+        }
+
+        // === FUNCIÓN PRINCIPAL PARA EXTRAER DATOS ===
         async function extractDataFromImage(imageFile) {
             try {
                 showStatus('🔍 Leyendo datos de la imagen...', 'info');
                 
                 const imageUrl = URL.createObjectURL(imageFile);
                 
+                // Usar Tesseract con configuración optimizada para español
                 const result = await Tesseract.recognize(imageUrl, 'spa', {
                     logger: (m) => {
                         if (m.status === 'recognizing text') {
@@ -479,82 +650,22 @@
                 URL.revokeObjectURL(imageUrl);
                 
                 const text = result.data.text;
-                console.log('📝 Texto extraído:', text);
+                console.log('📝 Texto completo extraído:');
+                console.log('--- INICIO ---');
+                console.log(text);
+                console.log('--- FIN ---');
                 
-                // === EXTRAER FOLIO SIAC ===
-                let folio = null;
-                const folioRegex = /Folio\s*SIAC\s*[:]\s*(\d+)/i;
-                const match = text.match(folioRegex);
+                // Mostrar el texto detectado en la interfaz
+                detectedTextContent.textContent = text;
+                detectedText.classList.add('show');
                 
-                if (match && match[1]) {
-                    folio = match[1];
-                } else {
-                    const simpleRegex = /SIAC\s*[:]?\s*(\d+)/i;
-                    const simpleMatch = text.match(simpleRegex);
-                    if (simpleMatch && simpleMatch[1]) {
-                        folio = simpleMatch[1];
-                    }
-                }
+                // Extraer Folio SIAC
+                const folio = extractFolioFromText(text);
                 
-                // === EXTRAER NOMBRE DEL CLIENTE ===
-                let nombreCliente = null;
+                // Extraer Nombre del Cliente
+                const nombreCliente = extractNombreFromText(text);
                 
-                // Buscar después de "Datos de contacto"
-                const contactoRegex = /Datos\s*de\s*contacto\s*([\s\S]*?)(?=\n\s*\n|Celular|Correo|$)/i;
-                const contactoMatch = text.match(contactoRegex);
-                
-                if (contactoMatch && contactoMatch[1]) {
-                    let nombreRaw = contactoMatch[1].trim();
-                    const lineas = nombreRaw.split('\n');
-                    for (let linea of lineas) {
-                        linea = linea.trim();
-                        if (linea.length > 3 && 
-                            !linea.toLowerCase().includes('celular') &&
-                            !linea.toLowerCase().includes('correo') &&
-                            !linea.toLowerCase().includes('email') &&
-                            !linea.toLowerCase().includes('e-mail') &&
-                            !linea.toLowerCase().includes('teléfono') &&
-                            !linea.toLowerCase().includes('telefono')) {
-                            nombreCliente = linea;
-                            break;
-                        }
-                    }
-                }
-                
-                // Si no encontró, buscar líneas después de "Datos de contacto"
-                if (!nombreCliente) {
-                    const lines = text.split('\n');
-                    for (let i = 0; i < lines.length; i++) {
-                        const line = lines[i].trim();
-                        if (line.toLowerCase().includes('datos de contacto')) {
-                            for (let j = i + 1; j < lines.length; j++) {
-                                const nextLine = lines[j].trim();
-                                if (nextLine.length > 3 && 
-                                    !nextLine.toLowerCase().includes('celular') &&
-                                    !nextLine.toLowerCase().includes('correo') &&
-                                    !nextLine.toLowerCase().includes('email')) {
-                                    nombreCliente = nextLine;
-                                    break;
-                                }
-                            }
-                            break;
-                        }
-                    }
-                }
-                
-                // Limpiar el nombre
-                if (nombreCliente) {
-                    nombreCliente = nombreCliente
-                        .replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
-                        .replace(/\s+/g, ' ')
-                        .trim()
-                        .toUpperCase();
-                }
-                
-                // === ACTUALIZAR INTERFAZ ===
-                console.log('📋 Folio:', folio);
-                console.log('👤 Cliente:', nombreCliente);
-                
+                // Actualizar interfaz
                 if (folio) {
                     folioDisplay.textContent = folio;
                     folioInfo.classList.add('show');
@@ -564,6 +675,7 @@
                     nombreInfo.classList.add('show');
                 }
                 
+                // Mostrar estado combinado
                 let statusMsg = '';
                 if (folio && nombreCliente) {
                     statusMsg = `✅ Folio: ${folio} | Cliente: ${nombreCliente}`;
@@ -593,6 +705,8 @@
             nombreInfo.classList.remove('show');
             folioDisplay.textContent = '-';
             nombreDisplay.textContent = '-';
+            detectedText.classList.remove('show');
+            detectedTextContent.textContent = '';
         }
 
         clearFolioBtn.addEventListener('click', () => {
