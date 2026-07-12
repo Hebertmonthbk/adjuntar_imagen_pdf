@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <!-- Librería Tesseract.js para OCR -->
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adjuntar imagen a PDF</title>
+    <title>Adjuntar imagen a PDF - SIAC</title>
+    <!-- Librería PDF-lib para manipular PDFs -->
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <!-- Librería Tesseract.js para OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -26,7 +27,7 @@
             background: white;
             border-radius: 20px;
             padding: 40px;
-            max-width: 550px;
+            max-width: 600px;
             width: 100%;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
@@ -109,39 +110,57 @@
         .remove-btn:hover {
             background: #e0313f;
         }
-        .position-controls {
-            margin-top: 25px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 12px;
+        .data-info {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
         }
-        .position-controls label {
-            font-size: 14px;
-            color: #555;
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-        .position-controls input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-        .position-controls input:focus {
-            border-color: #667eea;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-        }
-        .position-row {
+        .data-info.show {
             display: flex;
-            gap: 15px;
+        }
+        .data-info.folio {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .data-info.nombre {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
             margin-top: 10px;
         }
-        .position-row .input-group {
-            flex: 1;
+        .data-info .label {
+            font-weight: bold;
+        }
+        .data-info.folio .label {
+            color: #155724;
+        }
+        .data-info.folio .value {
+            color: #155724;
+            font-weight: bold;
+        }
+        .data-info.nombre .label {
+            color: #0c5460;
+        }
+        .data-info.nombre .value {
+            color: #0c5460;
+            font-weight: bold;
+        }
+        .btn-clear-data {
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 12px;
+            transition: all 0.2s;
+        }
+        .btn-clear-data:hover {
+            background: #5a6268;
         }
         .btn {
             width: 100%;
@@ -221,13 +240,25 @@
             border-radius: 3px;
             transition: width 0.3s;
         }
+        .file-preview {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+            text-align: center;
+        }
+        .file-preview.show {
+            display: block;
+        }
+        .file-preview img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+        }
         @media (max-width: 480px) {
             .container {
                 padding: 20px;
-            }
-            .position-row {
-                flex-direction: column;
-                gap: 10px;
             }
         }
     </style>
@@ -235,7 +266,7 @@
 <body>
 
 <div class="container">
-    <h1>📎 Adjuntar imagen a PDF</h1>
+    <h1>📎 Adjuntar imagen a PDF - SIAC</h1>
     <p class="subtitle">La imagen se añadirá como una nueva página al final del PDF</p>
 
     <!-- Zona de carga de PDF -->
@@ -258,7 +289,7 @@
     <div class="upload-area" id="imageUploadArea" style="margin-top:15px;">
         <div class="upload-icon">🖼️</div>
         <div class="upload-text">
-            <strong>Seleccionar imagen</strong> (PNG, JPG, JPEG)
+            <strong>Seleccionar imagen</strong> (PNG, JPG, JPEG) - Debe contener el Folio SIAC
         </div>
         <input type="file" id="imageInput" accept="image/*">
     </div>
@@ -270,23 +301,23 @@
         <button class="remove-btn" id="removeImageBtn">✕</button>
     </div>
 
-    <!-- Controles de posición -->
-    <div class="position-controls">
-        <label>✏️ Opciones de inserción</label>
-        <div class="position-row">
-            <div class="input-group">
-                <label style="font-size:12px; margin-bottom:2px;">Posición X (px)</label>
-                <input type="number" id="posX" value="50" min="0" step="1">
-            </div>
-            <div class="input-group">
-                <label style="font-size:12px; margin-bottom:2px;">Posición Y (px)</label>
-                <input type="number" id="posY" value="50" min="0" step="1">
-            </div>
-        </div>
-        <div style="margin-top:10px;">
-            <label style="font-size:12px; margin-bottom:2px;">Tamaño (porcentaje)</label>
-            <input type="number" id="imageScale" value="50" min="10" max="100" step="5">
-        </div>
+    <!-- Vista previa de la imagen -->
+    <div class="file-preview" id="imagePreview">
+        <img id="previewImage" alt="Vista previa de la imagen">
+    </div>
+
+    <!-- Información del Folio SIAC -->
+    <div class="data-info folio" id="folioInfo">
+        <span class="label">📋 Folio SIAC:</span>
+        <span class="value" id="folioDisplay">-</span>
+        <button class="btn-clear-data" id="clearFolioBtn">✕</button>
+    </div>
+
+    <!-- Información del Cliente -->
+    <div class="data-info nombre" id="nombreInfo">
+        <span class="label">👤 Cliente:</span>
+        <span class="value" id="nombreDisplay">-</span>
+        <button class="btn-clear-data" id="clearNombreBtn">✕</button>
     </div>
 
     <!-- Botón para procesar -->
@@ -301,7 +332,7 @@
     <div class="status" id="status"></div>
 
     <div class="footer-note">
-        El PDF se descargará automáticamente con la imagen adjunta como nueva página
+        El PDF se descargará automáticamente con el nombre: SIAC-FOLIO-NOMBRE_CLIENTE.pdf
     </div>
 </div>
 
@@ -322,15 +353,24 @@
         const removeImageBtn = document.getElementById('removeImageBtn');
         const processBtn = document.getElementById('processBtn');
         const status = document.getElementById('status');
-        const posX = document.getElementById('posX');
-        const posY = document.getElementById('posY');
-        const imageScale = document.getElementById('imageScale');
         const progressBar = document.getElementById('progressBar');
         const progressFill = document.getElementById('progressFill');
+        const folioDisplay = document.getElementById('folioDisplay');
+        const nombreDisplay = document.getElementById('nombreDisplay');
+        const folioInfo = document.getElementById('folioInfo');
+        const nombreInfo = document.getElementById('nombreInfo');
+        const clearFolioBtn = document.getElementById('clearFolioBtn');
+        const clearNombreBtn = document.getElementById('clearNombreBtn');
+        const imagePreview = document.getElementById('imagePreview');
+        const previewImage = document.getElementById('previewImage');
 
+        // Variables
         let pdfFile = null;
         let imageFile = null;
+        window.extractedFolio = null;
+        window.extractedNombre = null;
 
+        // === FUNCIONES DE UTILIDAD ===
         function formatSize(bytes) {
             if (bytes === 0) return '0 KB';
             const k = 1024;
@@ -363,36 +403,24 @@
             processBtn.disabled = !(pdfFile && imageFile);
         }
 
-        // === FUNCIÓN DE DESCARGA MEJORADA ===
+        // === FUNCIÓN DE DESCARGA ===
         function downloadPDF(data, filename) {
             try {
-                // Crear el blob
                 const blob = new Blob([data], { type: 'application/pdf' });
-                
-                // Verificar tamaño del blob
                 if (blob.size === 0) {
                     throw new Error('El archivo generado está vacío');
                 }
-
-                // Método 1: Usar URL.createObjectURL (más compatible)
                 const url = URL.createObjectURL(blob);
-                
-                // Crear elemento <a> y forzar clic
                 const link = document.createElement('a');
                 link.href = url;
                 link.download = filename;
                 link.style.display = 'none';
-                
-                // Añadir al DOM, forzar clic y eliminar
                 document.body.appendChild(link);
                 link.click();
-                
-                // Limpiar después de un delay
                 setTimeout(() => {
                     document.body.removeChild(link);
                     URL.revokeObjectURL(url);
                 }, 100);
-
                 return true;
             } catch (error) {
                 console.error('Error en descarga:', error);
@@ -400,12 +428,9 @@
             }
         }
 
-        // === FUNCIÓN DE DESCARGA ALTERNATIVA (para navegadores que bloquean el método anterior) ===
         function downloadPDFAlternative(data, filename) {
             try {
                 const blob = new Blob([data], { type: 'application/pdf' });
-                
-                // Usar el objeto window para abrir en nueva pestaña
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const win = window.open();
@@ -414,7 +439,6 @@
                             '<iframe src="' + e.target.result + 
                             '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>'
                         );
-                        // Forzar descarga desde el iframe
                         setTimeout(() => {
                             const link = win.document.createElement('a');
                             link.href = e.target.result;
@@ -422,7 +446,6 @@
                             link.click();
                         }, 500);
                     } else {
-                        // Si el navegador bloquea popups, usar el método directo
                         const link = document.createElement('a');
                         link.href = e.target.result;
                         link.download = filename;
@@ -437,23 +460,152 @@
             }
         }
 
-        function resetPDF() {
-            pdfFile = null;
-            pdfFileInfo.classList.remove('show');
-            pdfInput.value = '';
-            hideStatus();
-            hideProgress();
-            updateProcessButton();
+        // === FUNCIÓN PARA EXTRAER DATOS DE LA IMAGEN ===
+        async function extractDataFromImage(imageFile) {
+            try {
+                showStatus('🔍 Leyendo datos de la imagen...', 'info');
+                
+                const imageUrl = URL.createObjectURL(imageFile);
+                
+                const result = await Tesseract.recognize(imageUrl, 'spa', {
+                    logger: (m) => {
+                        if (m.status === 'recognizing text') {
+                            const progress = Math.round(m.progress * 100);
+                            updateProgress(40 + (progress * 0.3));
+                        }
+                    }
+                });
+                
+                URL.revokeObjectURL(imageUrl);
+                
+                const text = result.data.text;
+                console.log('📝 Texto extraído:', text);
+                
+                // === EXTRAER FOLIO SIAC ===
+                let folio = null;
+                const folioRegex = /Folio\s*SIAC\s*[:]\s*(\d+)/i;
+                const match = text.match(folioRegex);
+                
+                if (match && match[1]) {
+                    folio = match[1];
+                } else {
+                    const simpleRegex = /SIAC\s*[:]?\s*(\d+)/i;
+                    const simpleMatch = text.match(simpleRegex);
+                    if (simpleMatch && simpleMatch[1]) {
+                        folio = simpleMatch[1];
+                    }
+                }
+                
+                // === EXTRAER NOMBRE DEL CLIENTE ===
+                let nombreCliente = null;
+                
+                // Buscar después de "Datos de contacto"
+                const contactoRegex = /Datos\s*de\s*contacto\s*([\s\S]*?)(?=\n\s*\n|Celular|Correo|$)/i;
+                const contactoMatch = text.match(contactoRegex);
+                
+                if (contactoMatch && contactoMatch[1]) {
+                    let nombreRaw = contactoMatch[1].trim();
+                    const lineas = nombreRaw.split('\n');
+                    for (let linea of lineas) {
+                        linea = linea.trim();
+                        if (linea.length > 3 && 
+                            !linea.toLowerCase().includes('celular') &&
+                            !linea.toLowerCase().includes('correo') &&
+                            !linea.toLowerCase().includes('email') &&
+                            !linea.toLowerCase().includes('e-mail') &&
+                            !linea.toLowerCase().includes('teléfono') &&
+                            !linea.toLowerCase().includes('telefono')) {
+                            nombreCliente = linea;
+                            break;
+                        }
+                    }
+                }
+                
+                // Si no encontró, buscar líneas después de "Datos de contacto"
+                if (!nombreCliente) {
+                    const lines = text.split('\n');
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (line.toLowerCase().includes('datos de contacto')) {
+                            for (let j = i + 1; j < lines.length; j++) {
+                                const nextLine = lines[j].trim();
+                                if (nextLine.length > 3 && 
+                                    !nextLine.toLowerCase().includes('celular') &&
+                                    !nextLine.toLowerCase().includes('correo') &&
+                                    !nextLine.toLowerCase().includes('email')) {
+                                    nombreCliente = nextLine;
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+                
+                // Limpiar el nombre
+                if (nombreCliente) {
+                    nombreCliente = nombreCliente
+                        .replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
+                        .replace(/\s+/g, ' ')
+                        .trim()
+                        .toUpperCase();
+                }
+                
+                // === ACTUALIZAR INTERFAZ ===
+                console.log('📋 Folio:', folio);
+                console.log('👤 Cliente:', nombreCliente);
+                
+                if (folio) {
+                    folioDisplay.textContent = folio;
+                    folioInfo.classList.add('show');
+                }
+                if (nombreCliente) {
+                    nombreDisplay.textContent = nombreCliente;
+                    nombreInfo.classList.add('show');
+                }
+                
+                let statusMsg = '';
+                if (folio && nombreCliente) {
+                    statusMsg = `✅ Folio: ${folio} | Cliente: ${nombreCliente}`;
+                } else if (folio) {
+                    statusMsg = `✅ Folio: ${folio} (Nombre no detectado)`;
+                } else if (nombreCliente) {
+                    statusMsg = `✅ Cliente: ${nombreCliente} (Folio no detectado)`;
+                } else {
+                    statusMsg = '⚠️ No se detectaron datos en la imagen';
+                }
+                showStatus(statusMsg, folio && nombreCliente ? 'success' : 'warning');
+                
+                return { folio, nombreCliente };
+                
+            } catch (error) {
+                console.error('Error en OCR:', error);
+                showStatus('⚠️ Error al leer la imagen: ' + error.message, 'error');
+                return { folio: null, nombreCliente: null };
+            }
         }
 
-        function resetImage() {
-            imageFile = null;
-            imageFileInfo.classList.remove('show');
-            imageInput.value = '';
-            hideStatus();
-            hideProgress();
-            updateProcessButton();
+        // === LIMPIAR DATOS ===
+        function resetData() {
+            window.extractedFolio = null;
+            window.extractedNombre = null;
+            folioInfo.classList.remove('show');
+            nombreInfo.classList.remove('show');
+            folioDisplay.textContent = '-';
+            nombreDisplay.textContent = '-';
         }
+
+        clearFolioBtn.addEventListener('click', () => {
+            window.extractedFolio = null;
+            folioInfo.classList.remove('show');
+            folioDisplay.textContent = '-';
+        });
+
+        clearNombreBtn.addEventListener('click', () => {
+            window.extractedNombre = null;
+            nombreInfo.classList.remove('show');
+            nombreDisplay.textContent = '-';
+        });
 
         // === MANEJO DE PDF ===
         pdfUploadArea.addEventListener('click', () => pdfInput.click());
@@ -497,7 +649,14 @@
             updateProcessButton();
         }
 
-        removePdfBtn.addEventListener('click', resetPDF);
+        removePdfBtn.addEventListener('click', () => {
+            pdfFile = null;
+            pdfFileInfo.classList.remove('show');
+            pdfInput.value = '';
+            hideStatus();
+            hideProgress();
+            updateProcessButton();
+        });
 
         // === MANEJO DE IMAGEN ===
         imageUploadArea.addEventListener('click', () => imageInput.click());
@@ -529,61 +688,6 @@
         });
 
         function handleImageFile(file) {
-            // === FUNCIÓN PARA EXTRAER FOLIO SIAC DE LA IMAGEN ===
-async function extractFolioFromImage(imageFile) {
-    try {
-        showStatus('🔍 Leyendo Folio SIAC de la imagen...', 'info');
-        
-        // Crear un objeto URL para la imagen
-        const imageUrl = URL.createObjectURL(imageFile);
-        
-        // Usar Tesseract.js para OCR
-        const result = await Tesseract.recognize(imageUrl, 'spa', {
-            logger: (m) => {
-                if (m.status === 'recognizing text') {
-                    // Actualizar progreso del OCR
-                    const progress = Math.round(m.progress * 100);
-                    updateProgress(40 + (progress * 0.3));
-                }
-            }
-        });
-        
-        // Limpiar URL
-        URL.revokeObjectURL(imageUrl);
-        
-        // Obtener el texto extraído
-        const text = result.data.text;
-        console.log('Texto extraído:', text);
-        
-        // Buscar el Folio SIAC con expresión regular
-        // Patrón: "Folio SIAC:" seguido de números
-        const folioRegex = /Folio\s*SIAC\s*[:]\s*(\d+)/i;
-        const match = text.match(folioRegex);
-        
-        if (match && match[1]) {
-            const folio = match[1];
-            showStatus(`✅ Folio SIAC encontrado: ${folio}`, 'success');
-            return folio;
-        } else {
-            // Si no encuentra, buscar solo números después de "SIAC"
-            const simpleRegex = /SIAC\s*[:]?\s*(\d+)/i;
-            const simpleMatch = text.match(simpleRegex);
-            if (simpleMatch && simpleMatch[1]) {
-                const folio = simpleMatch[1];
-                showStatus(`✅ Folio SIAC encontrado: ${folio}`, 'success');
-                return folio;
-            }
-            
-            showStatus('⚠️ No se encontró Folio SIAC en la imagen', 'warning');
-            return null;
-        }
-        
-    } catch (error) {
-        console.error('Error en OCR:', error);
-        showStatus('⚠️ Error al leer la imagen: ' + error.message, 'error');
-        return null;
-    }
-}
             if (!file.type.startsWith('image/')) {
                 showStatus('El archivo no es una imagen válida.', 'error');
                 return;
@@ -592,34 +696,47 @@ async function extractFolioFromImage(imageFile) {
                 showStatus('Solo se permiten imágenes PNG, JPG o JPEG.', 'error');
                 return;
             }
+            
             imageFile = file;
             imageFileName.textContent = file.name;
             imageFileSize.textContent = formatSize(file.size);
             imageFileInfo.classList.add('show');
+            
+            // Mostrar vista previa
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImage.src = e.target.result;
+                imagePreview.classList.add('show');
+            };
+            reader.readAsDataURL(file);
+            
+            // Resetear datos anteriores
+            resetData();
             hideStatus();
             updateProcessButton();
+            
+            // Extraer datos automáticamente
+            extractDataFromImage(file).then(({ folio, nombreCliente }) => {
+                window.extractedFolio = folio;
+                window.extractedNombre = nombreCliente;
+            });
         }
 
-        removeImageBtn.addEventListener('click', resetImage);
+        removeImageBtn.addEventListener('click', () => {
+            imageFile = null;
+            imageFileInfo.classList.remove('show');
+            imagePreview.classList.remove('show');
+            imageInput.value = '';
+            resetData();
+            hideStatus();
+            hideProgress();
+            updateProcessButton();
+        });
 
         // === PROCESAR PDF ===
         processBtn.addEventListener('click', async () => {
             if (!pdfFile || !imageFile) {
                 showStatus('Faltan archivos. Selecciona un PDF y una imagen.', 'error');
-                return;
-            }
-
-            const x = parseInt(posX.value) || 50;
-            const y = parseInt(posY.value) || 50;
-            const scale = parseInt(imageScale.value) || 50;
-
-            if (x < 0 || y < 0) {
-                showStatus('Las posiciones X e Y deben ser valores positivos.', 'error');
-                return;
-            }
-
-            if (scale < 10 || scale > 100) {
-                showStatus('El tamaño debe estar entre 10% y 100%.', 'error');
                 return;
             }
 
@@ -661,48 +778,41 @@ async function extractFolioFromImage(imageFile) {
                 }
                 updateProgress(70);
 
-                // Paso 5: Crear página y dibujar
-             // Obtener dimensiones de la imagen
-const imgWidth = image.width;
-const imgHeight = image.height;
+                // Paso 5: Crear página y dibujar imagen ajustada
+                showStatus('Ajustando imagen al tamaño de la página...', 'info');
+                const imgWidth = image.width;
+                const imgHeight = image.height;
 
-// Obtener la primera página como referencia para tamaño
-const pages = pdfDoc.getPages();
-const firstPage = pages[0];
-const pageWidth = firstPage.getWidth();
-const pageHeight = firstPage.getHeight();
+                const pages = pdfDoc.getPages();
+                const firstPage = pages[0];
+                const pageWidth = firstPage.getWidth();
+                const pageHeight = firstPage.getHeight();
 
-// Calcular la relación de aspecto de la imagen
-const imageAspectRatio = imgWidth / imgHeight;
-const pageAspectRatio = pageWidth / pageHeight;
+                // Calcular la relación de aspecto
+                const imageAspectRatio = imgWidth / imgHeight;
+                const pageAspectRatio = pageWidth / pageHeight;
 
-// Calcular dimensiones para que la imagen se ajuste a la página
-let newWidth, newHeight;
+                let newWidth, newHeight;
 
-if (imageAspectRatio > pageAspectRatio) {
-    // La imagen es más ancha que la página (proporcionalmente)
-    newWidth = pageWidth * 0.85; // 85% del ancho de la página
-    newHeight = newWidth / imageAspectRatio;
-} else {
-    // La imagen es más alta que la página (proporcionalmente)
-    newHeight = pageHeight * 0.85; // 85% del alto de la página
-    newWidth = newHeight * imageAspectRatio;
-}
+                if (imageAspectRatio > pageAspectRatio) {
+                    newWidth = pageWidth * 0.85;
+                    newHeight = newWidth / imageAspectRatio;
+                } else {
+                    newHeight = pageHeight * 0.85;
+                    newWidth = newHeight * imageAspectRatio;
+                }
 
-// Centrar la imagen en la página
-const x = (pageWidth - newWidth) / 2;
-const y = (pageHeight - newHeight) / 2;
+                // Centrar la imagen
+                const x = (pageWidth - newWidth) / 2;
+                const y = (pageHeight - newHeight) / 2;
 
-// Crear una nueva página (tamaño igual a la primera página)
-const newPage = pdfDoc.addPage([pageWidth, pageHeight]);
-
-// Dibujar la imagen centrada y ajustada
-newPage.drawImage(image, {
-    x: x,
-    y: y,
-    width: newWidth,
-    height: newHeight,
-});
+                const newPage = pdfDoc.addPage([pageWidth, pageHeight]);
+                newPage.drawImage(image, {
+                    x: x,
+                    y: y,
+                    width: newWidth,
+                    height: newHeight,
+                });
                 updateProgress(85);
 
                 // Paso 6: Guardar PDF
@@ -710,14 +820,34 @@ newPage.drawImage(image, {
                 const pdfBytes = await pdfDoc.save();
                 updateProgress(95);
 
-                // Paso 7: Descargar
-                showStatus('Descargando archivo...', 'info');
-                const fileName = pdfFile.name.replace('.pdf', '') + '_con_imagen.pdf';
+                // Paso 7: Generar nombre del archivo
+                const folio = window.extractedFolio;
+                const nombre = window.extractedNombre;
 
-                // Intentar descarga con el método principal
+                let fileName;
+                if (folio && nombre) {
+                    const nombreLimpio = nombre
+                        .replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
+                        .replace(/\s+/g, '_')
+                        .trim();
+                    fileName = `SIAC-${folio}-${nombreLimpio}.pdf`;
+                } else if (folio) {
+                    fileName = `SIAC-${folio}.pdf`;
+                } else if (nombre) {
+                    const nombreLimpio = nombre
+                        .replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
+                        .replace(/\s+/g, '_')
+                        .trim();
+                    fileName = `CLIENTE-${nombreLimpio}.pdf`;
+                } else {
+                    fileName = pdfFile.name.replace('.pdf', '') + '_con_imagen.pdf';
+                }
+
+                showStatus(`📥 Descargando: ${fileName}`, 'info');
+
+                // Paso 8: Descargar
                 let downloadSuccess = downloadPDF(pdfBytes, fileName);
 
-                // Si falla, intentar con el método alternativo
                 if (!downloadSuccess) {
                     showStatus('Usando método alternativo de descarga...', 'warning');
                     downloadPDFAlternative(pdfBytes, fileName);
@@ -726,7 +856,7 @@ newPage.drawImage(image, {
                 updateProgress(100);
                 
                 setTimeout(() => {
-                    showStatus(`✅ ¡PDF generado exitosamente!`, 'success');
+                    showStatus(`✅ ¡PDF generado exitosamente! 📄 ${fileName}`, 'success');
                     processBtn.textContent = '✅ ¡Completado!';
                     setTimeout(() => {
                         processBtn.textContent = '🔄 Adjuntar imagen al PDF';
@@ -744,21 +874,8 @@ newPage.drawImage(image, {
             }
         });
 
+        // Inicializar
         updateProcessButton();
-
-        // Validar entradas numéricas
-        [posX, posY, imageScale].forEach(input => {
-            input.addEventListener('input', () => {
-                let val = parseInt(input.value);
-                if (isNaN(val) || val < 0) {
-                    input.value = 0;
-                }
-                if (input === imageScale) {
-                    if (val > 100) input.value = 100;
-                    if (val < 10) input.value = 10;
-                }
-            });
-        });
 
     })();
 </script>
