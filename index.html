@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REYCELL - Adjuntar imagen a PDF</title>
+    <title>REYCELL- Adjuntar imagen a PDF</title>
     <!-- Librería PDF-lib -->
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <!-- Librería Tesseract.js para OCR -->
@@ -136,17 +136,6 @@
             color: #a09080;
             display: block;
             margin-top: 4px;
-        }
-
-        .upload-text .shortcuts {
-            font-size: 11px;
-            color: #b0a090;
-            display: block;
-            margin-top: 6px;
-            background: #f0ebe7;
-            padding: 4px 12px;
-            border-radius: 12px;
-            display: inline-block;
         }
 
         /* ===== INFO DE ARCHIVOS ===== */
@@ -515,34 +504,21 @@
             margin: 20px 0;
         }
 
-        /* ===== NOTIFICACIÓN DE PEGADO ===== */
-        .paste-notification {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #333;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 10px;
+        /* ===== LOGO REYCELL ===== */
+        .logo-reycell {
             font-size: 14px;
-            font-weight: 500;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-            z-index: 9999;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            font-weight: 700;
+            color: #cc0000;
+            letter-spacing: 3px;
+            text-transform: uppercase;
         }
 
-        .paste-notification.show {
-            opacity: 1;
+        .logo-reycell span {
+            color: #ffcc00;
         }
     </style>
 </head>
 <body>
-
-<!-- ===== NOTIFICACIÓN DE PEGADO ===== -->
-<div class="paste-notification" id="pasteNotification">📋 Imagen pegada correctamente</div>
 
 <div class="container">
     <!-- ===== HEADER ===== -->
@@ -559,7 +535,6 @@
         <div class="upload-text">
             <strong>Seleccionar PDF</strong> o arrastrar aquí
             <span class="hint">Archivos PDF permitidos</span>
-            <span class="shortcuts">⌨️ Ctrl+V para pegar imagen</span>
         </div>
         <input type="file" id="pdfInput" accept=".pdf">
     </div>
@@ -577,9 +552,8 @@
         <div class="upload-area" id="imageUploadArea">
             <span class="upload-icon">🖼️</span>
             <div class="upload-text">
-                <strong>Seleccionar imagen</strong> · Arrastrar · <strong>Pegar (Ctrl+V)</strong>
+                <strong>Seleccionar imagen</strong> o arrastrar aquí
                 <span class="hint">PNG · JPG · JPEG — Debe contener el Folio SIAC</span>
-                <span class="shortcuts">📋 Ctrl+V para pegar imagen</span>
             </div>
             <input type="file" id="imageInput" accept="image/*">
         </div>
@@ -666,7 +640,6 @@
         const previewImage = document.getElementById('previewImage');
         const detectedText = document.getElementById('detectedText');
         const detectedTextContent = document.getElementById('detectedTextContent');
-        const pasteNotification = document.getElementById('pasteNotification');
 
         // ===== VARIABLES =====
         let pdfFile = null;
@@ -705,15 +678,6 @@
 
         function updateProcessButton() {
             processBtn.disabled = !(pdfFile && imageFile);
-        }
-
-        function showPasteNotification(message = '📋 Imagen pegada correctamente') {
-            pasteNotification.textContent = message;
-            pasteNotification.classList.add('show');
-            clearTimeout(window.pasteTimeout);
-            window.pasteTimeout = setTimeout(() => {
-                pasteNotification.classList.remove('show');
-            }, 2000);
         }
 
         // ===== DESCARGA =====
@@ -910,41 +874,6 @@
             }
         }
 
-        // ===== FUNCIÓN PARA PROCESAR IMAGEN (compartida entre selección, arrastre y pegado) =====
-        function processImageFile(file) {
-            if (!file.type.startsWith('image/')) {
-                showStatus('El archivo no es una imagen válida.', 'error');
-                return false;
-            }
-            if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
-                showStatus('Solo se permiten imágenes PNG, JPG o JPEG.', 'error');
-                return false;
-            }
-            
-            imageFile = file;
-            imageFileName.textContent = file.name;
-            imageFileSize.textContent = formatSize(file.size);
-            imageFileInfo.classList.add('show');
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                previewImage.src = e.target.result;
-                imagePreview.classList.add('show');
-            };
-            reader.readAsDataURL(file);
-            
-            resetData();
-            hideStatus();
-            updateProcessButton();
-            
-            extractDataFromImage(file).then(({ folio, nombreCliente }) => {
-                window.extractedFolio = folio;
-                window.extractedNombre = nombreCliente;
-            });
-            
-            return true;
-        }
-
         // ===== RESET =====
         function resetData() {
             window.extractedFolio = null;
@@ -1010,7 +939,7 @@
             updateProcessButton();
         });
 
-        // ===== MANEJO DE IMAGEN (selección) =====
+        // ===== MANEJO DE IMAGEN =====
         imageUploadArea.addEventListener('click', () => imageInput.click());
         imageUploadArea.addEventListener('dragover', (e) => { e.preventDefault(); imageUploadArea.classList.add('dragover'); });
         imageUploadArea.addEventListener('dragleave', () => imageUploadArea.classList.remove('dragover'));
@@ -1018,3 +947,180 @@
             e.preventDefault();
             imageUploadArea.classList.remove('dragover');
             const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                handleImageFile(files[0]);
+            } else {
+                showStatus('Por favor, arrastra una imagen válida.', 'error');
+            }
+        });
+
+        imageInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleImageFile(e.target.files[0]);
+        });
+
+        function handleImageFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showStatus('El archivo no es una imagen válida.', 'error');
+                return;
+            }
+            if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+                showStatus('Solo se permiten imágenes PNG, JPG o JPEG.', 'error');
+                return;
+            }
+            
+            imageFile = file;
+            imageFileName.textContent = file.name;
+            imageFileSize.textContent = formatSize(file.size);
+            imageFileInfo.classList.add('show');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImage.src = e.target.result;
+                imagePreview.classList.add('show');
+            };
+            reader.readAsDataURL(file);
+            
+            resetData();
+            hideStatus();
+            updateProcessButton();
+            
+            extractDataFromImage(file).then(({ folio, nombreCliente }) => {
+                window.extractedFolio = folio;
+                window.extractedNombre = nombreCliente;
+            });
+        }
+
+        removeImageBtn.addEventListener('click', () => {
+            imageFile = null;
+            imageFileInfo.classList.remove('show');
+            imagePreview.classList.remove('show');
+            imageInput.value = '';
+            resetData();
+            hideStatus();
+            hideProgress();
+            updateProcessButton();
+        });
+
+        // ===== PROCESAR PDF =====
+        processBtn.addEventListener('click', async () => {
+            if (!pdfFile || !imageFile) {
+                showStatus('Faltan archivos. Selecciona un PDF y una imagen.', 'error');
+                return;
+            }
+
+            processBtn.disabled = true;
+            processBtn.innerHTML = '<span class="btn-icon">⏳</span><span>Procesando...</span>';
+            showStatus('Iniciando procesamiento...', 'info');
+            updateProgress(0);
+
+            try {
+                updateProgress(10);
+                showStatus('Cargando archivo PDF...', 'info');
+                const pdfArrayBuffer = await pdfFile.arrayBuffer();
+                updateProgress(25);
+
+                showStatus('Cargando imagen...', 'info');
+                const imageArrayBuffer = await imageFile.arrayBuffer();
+                updateProgress(40);
+
+                showStatus('Procesando PDF...', 'info');
+                const { PDFDocument } = PDFLib;
+                const pdfDoc = await PDFDocument.load(pdfArrayBuffer);
+                updateProgress(55);
+
+                showStatus('Procesando imagen...', 'info');
+                let imageType = 'png';
+                if (imageFile.type === 'image/jpeg' || imageFile.type === 'image/jpg') {
+                    imageType = 'jpg';
+                }
+
+                let image;
+                if (imageType === 'png') {
+                    image = await pdfDoc.embedPng(imageArrayBuffer);
+                } else {
+                    image = await pdfDoc.embedJpg(imageArrayBuffer);
+                }
+                updateProgress(70);
+
+                showStatus('Ajustando imagen al tamaño de la página...', 'info');
+                const imgWidth = image.width;
+                const imgHeight = image.height;
+                const pages = pdfDoc.getPages();
+                const firstPage = pages[0];
+                const pageWidth = firstPage.getWidth();
+                const pageHeight = firstPage.getHeight();
+
+                const imageAspectRatio = imgWidth / imgHeight;
+                const pageAspectRatio = pageWidth / pageHeight;
+
+                let newWidth, newHeight;
+                if (imageAspectRatio > pageAspectRatio) {
+                    newWidth = pageWidth * 0.85;
+                    newHeight = newWidth / imageAspectRatio;
+                } else {
+                    newHeight = pageHeight * 0.85;
+                    newWidth = newHeight * imageAspectRatio;
+                }
+
+                const x = (pageWidth - newWidth) / 2;
+                const y = (pageHeight - newHeight) / 2;
+
+                const newPage = pdfDoc.addPage([pageWidth, pageHeight]);
+                newPage.drawImage(image, { x, y, width: newWidth, height: newHeight });
+                updateProgress(85);
+
+                showStatus('Guardando PDF final...', 'info');
+                const pdfBytes = await pdfDoc.save();
+                updateProgress(95);
+
+                const folio = window.extractedFolio;
+                const nombre = window.extractedNombre;
+
+                let fileName;
+                if (folio && nombre) {
+                    const nombreLimpio = nombre.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').replace(/\s+/g, '_').trim();
+                    fileName = `SIAC-${folio}-${nombreLimpio}.pdf`;
+                } else if (folio) {
+                    fileName = `SIAC-${folio}.pdf`;
+                } else if (nombre) {
+                    const nombreLimpio = nombre.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').replace(/\s+/g, '_').trim();
+                    fileName = `CLIENTE-${nombreLimpio}.pdf`;
+                } else {
+                    fileName = pdfFile.name.replace('.pdf', '') + '_con_imagen.pdf';
+                }
+
+                showStatus(`📥 Descargando: ${fileName}`, 'info');
+
+                let downloadSuccess = downloadPDF(pdfBytes, fileName);
+                if (!downloadSuccess) {
+                    showStatus('Usando método alternativo de descarga...', 'warning');
+                    downloadPDFAlternative(pdfBytes, fileName);
+                }
+
+                updateProgress(100);
+                setTimeout(() => {
+                    showStatus(`✅ ¡PDF generado exitosamente! 📄 ${fileName}`, 'success');
+                    processBtn.innerHTML = '<span class="btn-icon">✅</span><span>¡Completado!</span>';
+                    setTimeout(() => {
+                        processBtn.innerHTML = '<span class="btn-icon">⚡</span><span>Adjuntar imagen al PDF</span>';
+                        hideProgress();
+                    }, 3000);
+                }, 500);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('❌ Error al procesar: ' + error.message, 'error');
+                processBtn.innerHTML = '<span class="btn-icon">⚡</span><span>Adjuntar imagen al PDF</span>';
+                hideProgress();
+            } finally {
+                processBtn.disabled = false;
+            }
+        });
+
+        // ===== INICIALIZAR =====
+        updateProcessButton();
+    })();
+</script>
+
+</body>
+</html>
