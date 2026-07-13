@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SIAC - Adjuntar imagen a PDF</title>
+    <title>REYCELL - Adjuntar imagen a PDF</title>
     <!-- Librería PDF-lib -->
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <!-- Librería Tesseract.js para OCR -->
@@ -72,8 +72,8 @@
             font-weight: 400;
         }
 
-        /* ===== BADGE SIAC ===== */
-        .badge-siac {
+        /* ===== BADGE REYCELL ===== */
+        .badge-reycell {
             display: inline-block;
             background: #cc0000;
             color: white;
@@ -503,6 +503,19 @@
             background: linear-gradient(to right, transparent, #e8ddd5, transparent);
             margin: 20px 0;
         }
+
+        /* ===== LOGO REYCELL ===== */
+        .logo-reycell {
+            font-size: 14px;
+            font-weight: 700;
+            color: #cc0000;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .logo-reycell span {
+            color: #ffcc00;
+        }
     </style>
 </head>
 <body>
@@ -511,9 +524,9 @@
     <!-- ===== HEADER ===== -->
     <div class="header">
         <span class="logo-icon">📄</span>
-        <h1>SIAC <span>✦</span> PDF</h1>
+        <h1>REYCELL <span>✦</span> PDF</h1>
         <p class="subtitle">Adjunta imágenes a tus documentos PDF</p>
-        <span class="badge-siac">Sistema Integral</span>
+        <span class="badge-reycell">REYCELL Communications</span>
     </div>
 
     <!-- ===== CARGA DE PDF ===== -->
@@ -1021,4 +1034,93 @@
                     imageType = 'jpg';
                 }
 
-                let image
+                let image;
+                if (imageType === 'png') {
+                    image = await pdfDoc.embedPng(imageArrayBuffer);
+                } else {
+                    image = await pdfDoc.embedJpg(imageArrayBuffer);
+                }
+                updateProgress(70);
+
+                showStatus('Ajustando imagen al tamaño de la página...', 'info');
+                const imgWidth = image.width;
+                const imgHeight = image.height;
+                const pages = pdfDoc.getPages();
+                const firstPage = pages[0];
+                const pageWidth = firstPage.getWidth();
+                const pageHeight = firstPage.getHeight();
+
+                const imageAspectRatio = imgWidth / imgHeight;
+                const pageAspectRatio = pageWidth / pageHeight;
+
+                let newWidth, newHeight;
+                if (imageAspectRatio > pageAspectRatio) {
+                    newWidth = pageWidth * 0.85;
+                    newHeight = newWidth / imageAspectRatio;
+                } else {
+                    newHeight = pageHeight * 0.85;
+                    newWidth = newHeight * imageAspectRatio;
+                }
+
+                const x = (pageWidth - newWidth) / 2;
+                const y = (pageHeight - newHeight) / 2;
+
+                const newPage = pdfDoc.addPage([pageWidth, pageHeight]);
+                newPage.drawImage(image, { x, y, width: newWidth, height: newHeight });
+                updateProgress(85);
+
+                showStatus('Guardando PDF final...', 'info');
+                const pdfBytes = await pdfDoc.save();
+                updateProgress(95);
+
+                const folio = window.extractedFolio;
+                const nombre = window.extractedNombre;
+
+                let fileName;
+                if (folio && nombre) {
+                    const nombreLimpio = nombre.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').replace(/\s+/g, '_').trim();
+                    fileName = `SIAC-${folio}-${nombreLimpio}.pdf`;
+                } else if (folio) {
+                    fileName = `SIAC-${folio}.pdf`;
+                } else if (nombre) {
+                    const nombreLimpio = nombre.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').replace(/\s+/g, '_').trim();
+                    fileName = `CLIENTE-${nombreLimpio}.pdf`;
+                } else {
+                    fileName = pdfFile.name.replace('.pdf', '') + '_con_imagen.pdf';
+                }
+
+                showStatus(`📥 Descargando: ${fileName}`, 'info');
+
+                let downloadSuccess = downloadPDF(pdfBytes, fileName);
+                if (!downloadSuccess) {
+                    showStatus('Usando método alternativo de descarga...', 'warning');
+                    downloadPDFAlternative(pdfBytes, fileName);
+                }
+
+                updateProgress(100);
+                setTimeout(() => {
+                    showStatus(`✅ ¡PDF generado exitosamente! 📄 ${fileName}`, 'success');
+                    processBtn.innerHTML = '<span class="btn-icon">✅</span><span>¡Completado!</span>';
+                    setTimeout(() => {
+                        processBtn.innerHTML = '<span class="btn-icon">⚡</span><span>Adjuntar imagen al PDF</span>';
+                        hideProgress();
+                    }, 3000);
+                }, 500);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('❌ Error al procesar: ' + error.message, 'error');
+                processBtn.innerHTML = '<span class="btn-icon">⚡</span><span>Adjuntar imagen al PDF</span>';
+                hideProgress();
+            } finally {
+                processBtn.disabled = false;
+            }
+        });
+
+        // ===== INICIALIZAR =====
+        updateProcessButton();
+    })();
+</script>
+
+</body>
+</html>
