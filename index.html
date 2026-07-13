@@ -3,368 +3,604 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adjuntar imagen a PDF - SIAC</title>
-    <!-- Librería PDF-lib para manipular PDFs -->
+    <title>SIAC - Adjuntar imagen a PDF</title>
+    <!-- Librería PDF-lib -->
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <!-- Librería Tesseract.js para OCR -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <style>
+        /* ===== RESET Y BASE ===== */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f5f0eb;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
         }
+
+        /* ===== CONTENEDOR PRINCIPAL ===== */
         .container {
-            background: white;
-            border-radius: 20px;
+            background: #ffffff;
+            border-radius: 16px;
             padding: 40px;
             max-width: 650px;
             width: 100%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 40px rgba(180, 30, 30, 0.15);
+            border-top: 6px solid #cc0000;
+            position: relative;
+            overflow: hidden;
         }
-        h1 {
-            color: #333;
-            font-size: 24px;
+
+        /* ===== HEADER ===== */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0e8e0;
+            position: relative;
+        }
+
+        .header .logo-icon {
+            font-size: 48px;
+            display: block;
             margin-bottom: 5px;
-            text-align: center;
-            font-weight: 600;
         }
-        .subtitle {
-            color: #666;
-            text-align: center;
-            margin-bottom: 25px;
+
+        .header h1 {
+            color: #cc0000;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .header h1 span {
+            color: #ffcc00;
+        }
+
+        .header .subtitle {
+            color: #7a6b5f;
             font-size: 14px;
+            margin-top: 5px;
+            font-weight: 400;
         }
+
+        /* ===== BADGE SIAC ===== */
+        .badge-siac {
+            display: inline-block;
+            background: #cc0000;
+            color: white;
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 8px;
+        }
+
+        /* ===== ÁREAS DE CARGA ===== */
         .upload-area {
-            border: 2px dashed #ccc;
+            border: 2px dashed #d4c8be;
             border-radius: 12px;
-            padding: 25px;
+            padding: 22px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            background: #f9f9f9;
+            background: #fcf9f7;
+            position: relative;
         }
+
         .upload-area:hover {
-            border-color: #667eea;
-            background: #f0f3ff;
+            border-color: #cc0000;
+            background: #fff8f5;
+            transform: translateY(-1px);
         }
+
+        .upload-area.dragover {
+            border-color: #cc0000;
+            background: #fff0eb;
+            transform: scale(1.01);
+        }
+
         .upload-area input[type="file"] {
             display: none;
         }
+
         .upload-icon {
-            font-size: 48px;
-            color: #667eea;
-            margin-bottom: 10px;
+            font-size: 40px;
+            color: #cc0000;
+            margin-bottom: 8px;
+            display: block;
         }
+
         .upload-text {
-            color: #555;
-            font-size: 16px;
+            color: #5a4a3a;
+            font-size: 15px;
         }
+
         .upload-text strong {
-            color: #667eea;
+            color: #cc0000;
+            font-weight: 600;
         }
+
+        .upload-text .hint {
+            font-size: 12px;
+            color: #a09080;
+            display: block;
+            margin-top: 4px;
+        }
+
+        /* ===== INFO DE ARCHIVOS ===== */
         .file-info {
-            margin-top: 20px;
-            padding: 12px;
-            background: #f0f3ff;
-            border-radius: 8px;
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: #fcf9f7;
+            border-radius: 10px;
             display: none;
             align-items: center;
             justify-content: space-between;
+            border-left: 4px solid #cc0000;
         }
+
         .file-info.show {
             display: flex;
         }
-        .file-name {
-            color: #333;
+
+        .file-info .file-name {
+            color: #3d2e22;
             font-size: 14px;
+            font-weight: 500;
             word-break: break-all;
             flex: 1;
         }
-        .file-size {
-            color: #888;
+
+        .file-info .file-size {
+            color: #a09080;
             font-size: 12px;
-            margin-left: 10px;
+            margin-left: 12px;
+            white-space: nowrap;
         }
+
+        .file-info .file-status {
+            font-size: 18px;
+            margin-right: 10px;
+        }
+
         .remove-btn {
-            background: #ff4757;
-            color: white;
+            background: #e8ddd5;
+            color: #7a6b5f;
             border: none;
             border-radius: 50%;
             width: 28px;
             height: 28px;
             cursor: pointer;
             font-size: 14px;
-            margin-left: 12px;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+
         .remove-btn:hover {
-            background: #e0313f;
+            background: #cc0000;
+            color: white;
+            transform: rotate(90deg);
         }
+
+        /* ===== DATOS EXTRAÍDOS ===== */
         .data-info {
-            margin-top: 15px;
-            padding: 12px;
-            border-radius: 8px;
+            margin-top: 12px;
+            padding: 12px 16px;
+            border-radius: 10px;
             display: none;
             align-items: center;
             justify-content: space-between;
+            animation: slideDown 0.4s ease;
         }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .data-info.show {
             display: flex;
         }
+
         .data-info.folio {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
+            background: #fff8e6;
+            border: 1px solid #ffd966;
+            border-left: 4px solid #ffcc00;
         }
+
         .data-info.nombre {
-            background: #d1ecf1;
-            border: 1px solid #bee5eb;
-            margin-top: 10px;
+            background: #fce8e8;
+            border: 1px solid #f5a0a0;
+            border-left: 4px solid #cc0000;
         }
+
         .data-info .label {
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 13px;
         }
+
         .data-info.folio .label {
-            color: #155724;
+            color: #b8860b;
         }
+
         .data-info.folio .value {
-            color: #155724;
-            font-weight: bold;
+            color: #8b6914;
+            font-weight: 700;
+            font-size: 15px;
         }
+
         .data-info.nombre .label {
-            color: #0c5460;
+            color: #a02020;
         }
+
         .data-info.nombre .value {
-            color: #0c5460;
-            font-weight: bold;
+            color: #8b1a1a;
+            font-weight: 700;
+            font-size: 14px;
         }
+
         .btn-clear-data {
-            background: #6c757d;
-            color: white;
+            background: transparent;
+            color: #a09080;
             border: none;
             border-radius: 50%;
-            width: 28px;
-            height: 28px;
+            width: 26px;
+            height: 26px;
             cursor: pointer;
             font-size: 14px;
-            margin-left: 12px;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+
         .btn-clear-data:hover {
-            background: #5a6268;
+            background: rgba(0,0,0,0.08);
+            color: #cc0000;
         }
-        .btn {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 25px;
-        }
-        .btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
-        }
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .status {
-            margin-top: 20px;
-            padding: 12px;
-            border-radius: 8px;
-            display: none;
-            text-align: center;
-            font-size: 14px;
-        }
-        .status.show {
-            display: block;
-        }
-        .status.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .status.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        .status.warning {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffc107;
-        }
-        .footer-note {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 12px;
-            color: #999;
-        }
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: #e9ecef;
-            border-radius: 3px;
-            margin-top: 15px;
-            overflow: hidden;
-            display: none;
-        }
-        .progress-bar.show {
-            display: block;
-        }
-        .progress-bar .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            width: 0%;
-            border-radius: 3px;
-            transition: width 0.3s;
-        }
+
+        /* ===== VISTA PREVIA ===== */
         .file-preview {
             margin-top: 15px;
             padding: 10px;
-            background: #f8f9fa;
-            border-radius: 8px;
+            background: #fcf9f7;
+            border-radius: 10px;
             display: none;
             text-align: center;
+            border: 1px solid #e8ddd5;
         }
+
         .file-preview.show {
             display: block;
         }
+
         .file-preview img {
             max-width: 100%;
             max-height: 200px;
             border-radius: 8px;
         }
+
+        /* ===== TEXTO DETECTADO ===== */
         .detected-text {
-            margin-top: 10px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 8px;
+            margin-top: 12px;
+            padding: 12px 16px;
+            background: #faf8f6;
+            border-radius: 10px;
             display: none;
-            max-height: 150px;
+            max-height: 120px;
             overflow-y: auto;
             font-size: 12px;
-            color: #555;
-            border: 1px solid #ddd;
+            color: #5a4a3a;
+            border: 1px solid #e8ddd5;
         }
+
         .detected-text.show {
             display: block;
         }
+
         .detected-text .title {
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 5px;
+            font-weight: 600;
+            color: #cc0000;
+            margin-bottom: 4px;
+            font-size: 12px;
         }
+
+        .detected-text .text-content {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: #5a4a3a;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* ===== BOTÓN PRINCIPAL ===== */
+        .btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #cc0000 0%, #b30000 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 25px;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(204, 0, 0, 0.35);
+            background: linear-gradient(135deg, #d40000 0%, #b30000 100%);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn .btn-icon {
+            font-size: 20px;
+        }
+
+        /* ===== ESTADO ===== */
+        .status {
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            display: none;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+
+        .status.info {
+            background: #e3f2fd;
+            color: #0d47a1;
+            border: 1px solid #90caf9;
+        }
+
+        .status.warning {
+            background: #fff8e1;
+            color: #e65100;
+            border: 1px solid #ffcc80;
+        }
+
+        /* ===== BARRA DE PROGRESO ===== */
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #f0ebe7;
+            border-radius: 4px;
+            margin-top: 16px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-bar.show {
+            display: block;
+        }
+
+        .progress-bar .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffcc00, #cc0000);
+            width: 0%;
+            border-radius: 4px;
+            transition: width 0.4s ease;
+        }
+
+        /* ===== FOOTER ===== */
+        .footer-note {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #a09080;
+            border-top: 1px solid #f0ebe7;
+            padding-top: 16px;
+        }
+
+        .footer-note strong {
+            color: #cc0000;
+        }
+
+        /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
             .container {
-                padding: 20px;
+                padding: 24px 18px;
             }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .upload-area {
+                padding: 18px;
+            }
+
+            .upload-icon {
+                font-size: 32px;
+            }
+
+            .upload-text {
+                font-size: 13px;
+            }
+
+            .data-info {
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+
+            .btn {
+                font-size: 14px;
+                padding: 14px;
+            }
+        }
+
+        /* ===== SCROLLBAR ===== */
+        .detected-text::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .detected-text::-webkit-scrollbar-track {
+            background: #f0ebe7;
+            border-radius: 4px;
+        }
+
+        .detected-text::-webkit-scrollbar-thumb {
+            background: #cc0000;
+            border-radius: 4px;
+        }
+
+        /* ===== ANIMACIONES ===== */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .processing .btn-icon {
+            animation: pulse 1s infinite;
+        }
+
+        /* ===== SEPARADOR ===== */
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, #e8ddd5, transparent);
+            margin: 20px 0;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>📎 Adjuntar imagen a PDF - SIAC</h1>
-    <p class="subtitle">La imagen se añadirá como una nueva página al final del PDF</p>
+    <!-- ===== HEADER ===== -->
+    <div class="header">
+        <span class="logo-icon">📄</span>
+        <h1>SIAC <span>✦</span> PDF</h1>
+        <p class="subtitle">Adjunta imágenes a tus documentos PDF</p>
+        <span class="badge-siac">Sistema Integral</span>
+    </div>
 
-    <!-- Zona de carga de PDF -->
+    <!-- ===== CARGA DE PDF ===== -->
     <div class="upload-area" id="pdfUploadArea">
-        <div class="upload-icon">📄</div>
+        <span class="upload-icon">📑</span>
         <div class="upload-text">
             <strong>Seleccionar PDF</strong> o arrastrar aquí
+            <span class="hint">Archivos PDF permitidos</span>
         </div>
         <input type="file" id="pdfInput" accept=".pdf">
     </div>
 
-    <!-- Información del PDF cargado -->
+    <!-- Info del PDF -->
     <div class="file-info" id="pdfFileInfo">
+        <span class="file-status">📄</span>
         <span class="file-name" id="pdfFileName">documento.pdf</span>
         <span class="file-size" id="pdfFileSize">0 KB</span>
         <button class="remove-btn" id="removePdfBtn">✕</button>
     </div>
 
-    <!-- Zona de carga de imagen -->
-    <div class="upload-area" id="imageUploadArea" style="margin-top:15px;">
-        <div class="upload-icon">🖼️</div>
-        <div class="upload-text">
-            <strong>Seleccionar imagen</strong> (PNG, JPG, JPEG) - Debe contener el Folio SIAC
+    <!-- ===== CARGA DE IMAGEN ===== -->
+    <div style="margin-top: 18px;">
+        <div class="upload-area" id="imageUploadArea">
+            <span class="upload-icon">🖼️</span>
+            <div class="upload-text">
+                <strong>Seleccionar imagen</strong> o arrastrar aquí
+                <span class="hint">PNG · JPG · JPEG — Debe contener el Folio SIAC</span>
+            </div>
+            <input type="file" id="imageInput" accept="image/*">
         </div>
-        <input type="file" id="imageInput" accept="image/*">
     </div>
 
-    <!-- Información de la imagen cargada -->
+    <!-- Info de la imagen -->
     <div class="file-info" id="imageFileInfo">
+        <span class="file-status">🖼️</span>
         <span class="file-name" id="imageFileName">imagen.png</span>
         <span class="file-size" id="imageFileSize">0 KB</span>
         <button class="remove-btn" id="removeImageBtn">✕</button>
     </div>
 
-    <!-- Vista previa de la imagen -->
+    <!-- Vista previa -->
     <div class="file-preview" id="imagePreview">
         <img id="previewImage" alt="Vista previa de la imagen">
     </div>
 
     <!-- Texto detectado -->
     <div class="detected-text" id="detectedText">
-        <div class="title">📝 Texto detectado en la imagen:</div>
-        <div id="detectedTextContent"></div>
+        <div class="title">📝 Texto detectado</div>
+        <div class="text-content" id="detectedTextContent"></div>
     </div>
 
-    <!-- Información del Folio SIAC -->
+    <!-- ===== DATOS EXTRAÍDOS ===== -->
     <div class="data-info folio" id="folioInfo">
-        <span class="label">📋 Folio SIAC:</span>
+        <span class="label">📋 Folio SIAC</span>
         <span class="value" id="folioDisplay">-</span>
         <button class="btn-clear-data" id="clearFolioBtn">✕</button>
     </div>
 
-    <!-- Información del Cliente -->
     <div class="data-info nombre" id="nombreInfo">
-        <span class="label">👤 Cliente:</span>
+        <span class="label">👤 Cliente</span>
         <span class="value" id="nombreDisplay">-</span>
         <button class="btn-clear-data" id="clearNombreBtn">✕</button>
     </div>
 
-    <!-- Botón para procesar -->
-    <button class="btn" id="processBtn" disabled>🔄 Adjuntar imagen al PDF</button>
+    <!-- ===== BOTÓN PRINCIPAL ===== -->
+    <button class="btn" id="processBtn" disabled>
+        <span class="btn-icon">⚡</span>
+        <span>Adjuntar imagen al PDF</span>
+    </button>
 
     <!-- Barra de progreso -->
     <div class="progress-bar" id="progressBar">
         <div class="progress-fill" id="progressFill"></div>
     </div>
 
-    <!-- Mensaje de estado -->
+    <!-- Estado -->
     <div class="status" id="status"></div>
 
+    <!-- ===== FOOTER ===== -->
     <div class="footer-note">
-        El PDF se descargará automáticamente con el nombre: SIAC-FOLIO-NOMBRE_CLIENTE.pdf
+        El PDF se descargará como <strong>SIAC-FOLIO-NOMBRE_CLIENTE.pdf</strong>
     </div>
 </div>
 
 <script>
     (function() {
-        // Elementos DOM
+        // ===== DOM ELEMENTS =====
         const pdfInput = document.getElementById('pdfInput');
         const imageInput = document.getElementById('imageInput');
         const pdfUploadArea = document.getElementById('pdfUploadArea');
@@ -392,13 +628,13 @@
         const detectedText = document.getElementById('detectedText');
         const detectedTextContent = document.getElementById('detectedTextContent');
 
-        // Variables
+        // ===== VARIABLES =====
         let pdfFile = null;
         let imageFile = null;
         window.extractedFolio = null;
         window.extractedNombre = null;
 
-        // === FUNCIONES DE UTILIDAD ===
+        // ===== UTILIDADES =====
         function formatSize(bytes) {
             if (bytes === 0) return '0 KB';
             const k = 1024;
@@ -431,13 +667,11 @@
             processBtn.disabled = !(pdfFile && imageFile);
         }
 
-        // === FUNCIÓN DE DESCARGA ===
+        // ===== DESCARGA =====
         function downloadPDF(data, filename) {
             try {
                 const blob = new Blob([data], { type: 'application/pdf' });
-                if (blob.size === 0) {
-                    throw new Error('El archivo generado está vacío');
-                }
+                if (blob.size === 0) throw new Error('El archivo está vacío');
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
@@ -488,137 +722,84 @@
             }
         }
 
-        // === FUNCIÓN MEJORADA PARA EXTRAER FOLIO SIAC CON MÚLTIPLES VARIACIONES ===
+        // ===== EXTRACCIÓN DE DATOS =====
         function extractFolioFromText(text) {
-            // Limpiar el texto: eliminar caracteres especiales y normalizar espacios
             const cleanText = text.replace(/\s+/g, ' ').trim();
             
-            // Array de patrones para buscar el Folio SIAC (ordenados por prioridad)
             const patterns = [
-                // Patrón 1: "Folio SIAC: 123456789" (más común)
-                { regex: /Folio\s*SIAC\s*[:;]\s*(\d{9,})/i, description: 'Formato estándar' },
-                // Patrón 2: "SIAC: 123456789"
-                { regex: /SIAC\s*[:;]\s*(\d{9,})/i, description: 'Formato corto' },
-                // Patrón 3: "Folio: 123456789"
-                { regex: /Folio\s*[:;]\s*(\d{9,})/i, description: 'Solo Folio' },
-                // Patrón 4: "Número de Folio: 123456789"
-                { regex: /Número\s*de\s*Folio\s*[:;]\s*(\d{9,})/i, description: 'Número de Folio' },
-                // Patrón 5: "Folio SIAC 123456789" (sin dos puntos)
-                { regex: /Folio\s*SIAC\s*(\d{9,})/i, description: 'Sin dos puntos' },
-                // Patrón 6: "SIAC 123456789" (sin dos puntos)
-                { regex: /SIAC\s*(\d{9,})/i, description: 'SIAC sin dos puntos' },
-                // Patrón 7: "FOLIO: 123456789" (mayúsculas)
-                { regex: /FOLIO\s*[:;]\s*(\d{9,})/i, description: 'Mayúsculas' },
-                // Patrón 8: "folio: 123456789" (minúsculas)
-                { regex: /folio\s*[:;]\s*(\d{9,})/i, description: 'Minúsculas' },
-                // Patrón 9: Buscar cualquier número de 9 dígitos después de la palabra SIAC
-                { regex: /SIAC.*?(\d{9,})/i, description: 'SIAC seguido de números' },
-                // Patrón 10: Buscar cualquier número de 9 dígitos después de la palabra Folio
-                { regex: /Folio.*?(\d{9,})/i, description: 'Folio seguido de números' },
-                // Patrón 11: Buscar números de 9 dígitos que parezcan folio (con contexto)
-                { regex: /(?:folio|siac|expediente|numero)\s*[:;]?\s*(\d{9,})/i, description: 'Contexto variado' },
-                // Patrón 12: Buscar números de 9 dígitos con guiones o espacios
-                { regex: /(?:folio|siac)\s*[:;]?\s*(\d{3,4}[\s\-]?\d{3,4}[\s\-]?\d{3,4})/i, description: 'Con guiones o espacios' }
+                { regex: /Folio\s*SIAC\s*[:;]\s*(\d{9,})/i, desc: 'Estándar' },
+                { regex: /SIAC\s*[:;]\s*(\d{9,})/i, desc: 'Corto' },
+                { regex: /Folio\s*[:;]\s*(\d{9,})/i, desc: 'Solo Folio' },
+                { regex: /Número\s*de\s*Folio\s*[:;]\s*(\d{9,})/i, desc: 'Número de Folio' },
+                { regex: /Folio\s*SIAC\s*(\d{9,})/i, desc: 'Sin dos puntos' },
+                { regex: /SIAC\s*(\d{9,})/i, desc: 'SIAC sin dos puntos' },
+                { regex: /FOLIO\s*[:;]\s*(\d{9,})/i, desc: 'Mayúsculas' },
+                { regex: /folio\s*[:;]\s*(\d{9,})/i, desc: 'Minúsculas' },
+                { regex: /SIAC.*?(\d{9,})/i, desc: 'SIAC seguido de números' },
+                { regex: /Folio.*?(\d{9,})/i, desc: 'Folio seguido de números' },
+                { regex: /(?:folio|siac|expediente|numero)\s*[:;]?\s*(\d{9,})/i, desc: 'Contexto variado' },
+                { regex: /(?:folio|siac)\s*[:;]?\s*(\d{3,4}[\s\-]?\d{3,4}[\s\-]?\d{3,4})/i, desc: 'Con guiones' }
             ];
 
-            // Intentar cada patrón
             for (let pattern of patterns) {
                 const match = cleanText.match(pattern.regex);
                 if (match && match[1]) {
-                    // Limpiar el número encontrado (eliminar espacios, guiones, etc.)
                     let folio = match[1].replace(/[\s\-]/g, '');
-                    // Verificar que sea un número válido de al menos 6 dígitos
                     if (/^\d{6,}$/.test(folio)) {
-                        console.log(`✅ Folio encontrado con patrón: ${pattern.description} -> ${folio}`);
+                        console.log(`✅ Folio encontrado: ${folio}`);
                         return folio;
                     }
                 }
             }
 
-            // Si no se encontró con los patrones específicos, buscar cualquier número de 9 dígitos
             const fallbackRegex = /\b(\d{9,})\b/g;
             const fallbackMatches = cleanText.matchAll(fallbackRegex);
             for (const match of fallbackMatches) {
-                if (match && match[1]) {
-                    // Verificar que sea un número de al menos 6 dígitos
-                    if (/^\d{6,}$/.test(match[1])) {
-                        console.log(`✅ Folio encontrado (fallback): ${match[1]}`);
-                        return match[1];
-                    }
+                if (match && match[1] && /^\d{6,}$/.test(match[1])) {
+                    console.log(`✅ Folio encontrado (fallback): ${match[1]}`);
+                    return match[1];
                 }
             }
 
-            console.log('❌ No se encontró ningún Folio SIAC');
             return null;
         }
 
-        // === FUNCIÓN MEJORADA PARA EXTRAER NOMBRE DEL CLIENTE ===
         function extractNombreFromText(text) {
-            // Limpiar el texto
-            const cleanText = text.replace(/\s+/g, ' ').trim();
             const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            const keywords = ['celular', 'correo', 'email', 'e-mail', 'teléfono', 'telefono', 
+                             'contacto', 'domicilio', 'dirección', 'direccion', 'ciudad',
+                             'estado', 'municipio', 'colonia', 'cp', 'código postal'];
 
-            // Buscar la sección "Datos de contacto"
             let contactoIndex = -1;
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].toLowerCase();
                 if (line.includes('datos de contacto') || 
                     line.includes('datos del cliente') ||
-                    line.includes('información del cliente') ||
-                    line.includes('contacto')) {
+                    line.includes('información del cliente')) {
                     contactoIndex = i;
                     break;
                 }
             }
 
-            // Si encontró "Datos de contacto", buscar el nombre en las siguientes líneas
             if (contactoIndex !== -1) {
-                // Palabras clave para ignorar
-                const keywords = ['celular', 'correo', 'email', 'e-mail', 'teléfono', 'telefono', 
-                                 'contacto', 'domicilio', 'dirección', 'direccion', 'ciudad',
-                                 'estado', 'municipio', 'colonia', 'cp', 'código postal'];
-
                 for (let i = contactoIndex + 1; i < lines.length; i++) {
                     const line = lines[i];
-                    // Verificar que la línea no contenga palabras clave
-                    const hasKeyword = keywords.some(keyword => line.toLowerCase().includes(keyword));
-                    
-                    // Verificar que la línea tenga más de 5 caracteres y menos de 100
-                    if (!hasKeyword && line.length > 5 && line.length < 100) {
-                        // Verificar que contenga letras (no solo números)
-                        if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(line)) {
-                            // Limpiar el nombre
-                            let nombre = line
-                                .replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
-                                .replace(/\s+/g, ' ')
-                                .trim()
-                                .toUpperCase();
-                            
-                            if (nombre.length > 3) {
-                                console.log(`✅ Nombre encontrado: ${nombre}`);
-                                return nombre;
-                            }
+                    const hasKeyword = keywords.some(k => line.toLowerCase().includes(k));
+                    if (!hasKeyword && line.length > 5 && line.length < 100 && /[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(line)) {
+                        let nombre = line.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
+                        if (nombre.length > 3) {
+                            console.log(`✅ Nombre encontrado: ${nombre}`);
+                            return nombre;
                         }
                     }
                 }
             }
 
-            // Si no encontró por "Datos de contacto", buscar líneas que parezcan nombres
-            // Buscar líneas que contengan nombre completo (2 o más palabras, con mayúsculas)
             const nombrePattern = /^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)?/;
             for (const line of lines) {
-                // Ignorar líneas que contengan palabras clave
-                const keywords = ['CELULAR', 'CORREO', 'EMAIL', 'TELÉFONO', 'TELEFONO', 
-                                 'CONTACTO', 'DOMICILIO', 'DIRECCIÓN', 'DIRECCION'];
-                const hasKeyword = keywords.some(keyword => line.toUpperCase().includes(keyword));
-                
+                const hasKeyword = keywords.some(k => line.toLowerCase().includes(k));
                 if (!hasKeyword && nombrePattern.test(line)) {
-                    let nombre = line
-                        .replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
-                        .replace(/\s+/g, ' ')
-                        .trim()
-                        .toUpperCase();
-                    
+                    let nombre = line.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
                     if (nombre.length > 5) {
                         console.log(`✅ Nombre encontrado (fallback): ${nombre}`);
                         return nombre;
@@ -626,46 +807,31 @@
                 }
             }
 
-            console.log('❌ No se encontró nombre de cliente');
             return null;
         }
 
-        // === FUNCIÓN PRINCIPAL PARA EXTRAER DATOS ===
         async function extractDataFromImage(imageFile) {
             try {
                 showStatus('🔍 Leyendo datos de la imagen...', 'info');
-                
                 const imageUrl = URL.createObjectURL(imageFile);
                 
-                // Usar Tesseract con configuración optimizada para español
                 const result = await Tesseract.recognize(imageUrl, 'spa', {
                     logger: (m) => {
                         if (m.status === 'recognizing text') {
-                            const progress = Math.round(m.progress * 100);
-                            updateProgress(40 + (progress * 0.3));
+                            updateProgress(40 + (Math.round(m.progress * 100) * 0.3));
                         }
                     }
                 });
                 
                 URL.revokeObjectURL(imageUrl);
-                
                 const text = result.data.text;
-                console.log('📝 Texto completo extraído:');
-                console.log('--- INICIO ---');
-                console.log(text);
-                console.log('--- FIN ---');
                 
-                // Mostrar el texto detectado en la interfaz
                 detectedTextContent.textContent = text;
                 detectedText.classList.add('show');
                 
-                // Extraer Folio SIAC
                 const folio = extractFolioFromText(text);
-                
-                // Extraer Nombre del Cliente
                 const nombreCliente = extractNombreFromText(text);
                 
-                // Actualizar interfaz
                 if (folio) {
                     folioDisplay.textContent = folio;
                     folioInfo.classList.add('show');
@@ -675,7 +841,6 @@
                     nombreInfo.classList.add('show');
                 }
                 
-                // Mostrar estado combinado
                 let statusMsg = '';
                 if (folio && nombreCliente) {
                     statusMsg = `✅ Folio: ${folio} | Cliente: ${nombreCliente}`;
@@ -689,7 +854,6 @@
                 showStatus(statusMsg, folio && nombreCliente ? 'success' : 'warning');
                 
                 return { folio, nombreCliente };
-                
             } catch (error) {
                 console.error('Error en OCR:', error);
                 showStatus('⚠️ Error al leer la imagen: ' + error.message, 'error');
@@ -697,7 +861,7 @@
             }
         }
 
-        // === LIMPIAR DATOS ===
+        // ===== RESET =====
         function resetData() {
             window.extractedFolio = null;
             window.extractedNombre = null;
@@ -721,21 +885,13 @@
             nombreDisplay.textContent = '-';
         });
 
-        // === MANEJO DE PDF ===
+        // ===== MANEJO DE PDF =====
         pdfUploadArea.addEventListener('click', () => pdfInput.click());
-
-        pdfUploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            pdfUploadArea.style.borderColor = '#667eea';
-        });
-
-        pdfUploadArea.addEventListener('dragleave', () => {
-            pdfUploadArea.style.borderColor = '#ccc';
-        });
-
+        pdfUploadArea.addEventListener('dragover', (e) => { e.preventDefault(); pdfUploadArea.classList.add('dragover'); });
+        pdfUploadArea.addEventListener('dragleave', () => pdfUploadArea.classList.remove('dragover'));
         pdfUploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
-            pdfUploadArea.style.borderColor = '#ccc';
+            pdfUploadArea.classList.remove('dragover');
             const files = e.dataTransfer.files;
             if (files.length > 0 && files[0].type === 'application/pdf') {
                 handlePDFFile(files[0]);
@@ -745,9 +901,7 @@
         });
 
         pdfInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handlePDFFile(e.target.files[0]);
-            }
+            if (e.target.files.length > 0) handlePDFFile(e.target.files[0]);
         });
 
         function handlePDFFile(file) {
@@ -772,21 +926,13 @@
             updateProcessButton();
         });
 
-        // === MANEJO DE IMAGEN ===
+        // ===== MANEJO DE IMAGEN =====
         imageUploadArea.addEventListener('click', () => imageInput.click());
-
-        imageUploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            imageUploadArea.style.borderColor = '#667eea';
-        });
-
-        imageUploadArea.addEventListener('dragleave', () => {
-            imageUploadArea.style.borderColor = '#ccc';
-        });
-
+        imageUploadArea.addEventListener('dragover', (e) => { e.preventDefault(); imageUploadArea.classList.add('dragover'); });
+        imageUploadArea.addEventListener('dragleave', () => imageUploadArea.classList.remove('dragover'));
         imageUploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
-            imageUploadArea.style.borderColor = '#ccc';
+            imageUploadArea.classList.remove('dragover');
             const files = e.dataTransfer.files;
             if (files.length > 0 && files[0].type.startsWith('image/')) {
                 handleImageFile(files[0]);
@@ -796,9 +942,7 @@
         });
 
         imageInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleImageFile(e.target.files[0]);
-            }
+            if (e.target.files.length > 0) handleImageFile(e.target.files[0]);
         });
 
         function handleImageFile(file) {
@@ -816,7 +960,6 @@
             imageFileSize.textContent = formatSize(file.size);
             imageFileInfo.classList.add('show');
             
-            // Mostrar vista previa
             const reader = new FileReader();
             reader.onload = function(e) {
                 previewImage.src = e.target.result;
@@ -824,12 +967,10 @@
             };
             reader.readAsDataURL(file);
             
-            // Resetear datos anteriores
             resetData();
             hideStatus();
             updateProcessButton();
             
-            // Extraer datos automáticamente
             extractDataFromImage(file).then(({ folio, nombreCliente }) => {
                 window.extractedFolio = folio;
                 window.extractedNombre = nombreCliente;
@@ -847,7 +988,7 @@
             updateProcessButton();
         });
 
-        // === PROCESAR PDF ===
+        // ===== PROCESAR PDF =====
         processBtn.addEventListener('click', async () => {
             if (!pdfFile || !imageFile) {
                 showStatus('Faltan archivos. Selecciona un PDF y una imagen.', 'error');
@@ -855,144 +996,29 @@
             }
 
             processBtn.disabled = true;
-            processBtn.textContent = '⏳ Procesando...';
+            processBtn.innerHTML = '<span class="btn-icon">⏳</span><span>Procesando...</span>';
             showStatus('Iniciando procesamiento...', 'info');
             updateProgress(0);
 
             try {
-                // Paso 1: Cargar PDF
                 updateProgress(10);
                 showStatus('Cargando archivo PDF...', 'info');
                 const pdfArrayBuffer = await pdfFile.arrayBuffer();
                 updateProgress(25);
 
-                // Paso 2: Cargar imagen
                 showStatus('Cargando imagen...', 'info');
                 const imageArrayBuffer = await imageFile.arrayBuffer();
                 updateProgress(40);
 
-                // Paso 3: Procesar PDF
                 showStatus('Procesando PDF...', 'info');
                 const { PDFDocument } = PDFLib;
                 const pdfDoc = await PDFDocument.load(pdfArrayBuffer);
                 updateProgress(55);
 
-                // Paso 4: Procesar imagen
                 showStatus('Procesando imagen...', 'info');
                 let imageType = 'png';
                 if (imageFile.type === 'image/jpeg' || imageFile.type === 'image/jpg') {
                     imageType = 'jpg';
                 }
 
-                let image;
-                if (imageType === 'png') {
-                    image = await pdfDoc.embedPng(imageArrayBuffer);
-                } else {
-                    image = await pdfDoc.embedJpg(imageArrayBuffer);
-                }
-                updateProgress(70);
-
-                // Paso 5: Crear página y dibujar imagen ajustada
-                showStatus('Ajustando imagen al tamaño de la página...', 'info');
-                const imgWidth = image.width;
-                const imgHeight = image.height;
-
-                const pages = pdfDoc.getPages();
-                const firstPage = pages[0];
-                const pageWidth = firstPage.getWidth();
-                const pageHeight = firstPage.getHeight();
-
-                // Calcular la relación de aspecto
-                const imageAspectRatio = imgWidth / imgHeight;
-                const pageAspectRatio = pageWidth / pageHeight;
-
-                let newWidth, newHeight;
-
-                if (imageAspectRatio > pageAspectRatio) {
-                    newWidth = pageWidth * 0.85;
-                    newHeight = newWidth / imageAspectRatio;
-                } else {
-                    newHeight = pageHeight * 0.85;
-                    newWidth = newHeight * imageAspectRatio;
-                }
-
-                // Centrar la imagen
-                const x = (pageWidth - newWidth) / 2;
-                const y = (pageHeight - newHeight) / 2;
-
-                const newPage = pdfDoc.addPage([pageWidth, pageHeight]);
-                newPage.drawImage(image, {
-                    x: x,
-                    y: y,
-                    width: newWidth,
-                    height: newHeight,
-                });
-                updateProgress(85);
-
-                // Paso 6: Guardar PDF
-                showStatus('Guardando PDF final...', 'info');
-                const pdfBytes = await pdfDoc.save();
-                updateProgress(95);
-
-                // Paso 7: Generar nombre del archivo
-                const folio = window.extractedFolio;
-                const nombre = window.extractedNombre;
-
-                let fileName;
-                if (folio && nombre) {
-                    const nombreLimpio = nombre
-                        .replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
-                        .replace(/\s+/g, '_')
-                        .trim();
-                    fileName = `SIAC-${folio}-${nombreLimpio}.pdf`;
-                } else if (folio) {
-                    fileName = `SIAC-${folio}.pdf`;
-                } else if (nombre) {
-                    const nombreLimpio = nombre
-                        .replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '')
-                        .replace(/\s+/g, '_')
-                        .trim();
-                    fileName = `CLIENTE-${nombreLimpio}.pdf`;
-                } else {
-                    fileName = pdfFile.name.replace('.pdf', '') + '_con_imagen.pdf';
-                }
-
-                showStatus(`📥 Descargando: ${fileName}`, 'info');
-
-                // Paso 8: Descargar
-                let downloadSuccess = downloadPDF(pdfBytes, fileName);
-
-                if (!downloadSuccess) {
-                    showStatus('Usando método alternativo de descarga...', 'warning');
-                    downloadPDFAlternative(pdfBytes, fileName);
-                }
-
-                updateProgress(100);
-                
-                setTimeout(() => {
-                    showStatus(`✅ ¡PDF generado exitosamente! 📄 ${fileName}`, 'success');
-                    processBtn.textContent = '✅ ¡Completado!';
-                    setTimeout(() => {
-                        processBtn.textContent = '🔄 Adjuntar imagen al PDF';
-                        hideProgress();
-                    }, 3000);
-                }, 500);
-
-            } catch (error) {
-                console.error('Error detallado:', error);
-                showStatus('❌ Error al procesar: ' + error.message, 'error');
-                processBtn.textContent = '🔄 Adjuntar imagen al PDF';
-                hideProgress();
-            } finally {
-                processBtn.disabled = false;
-            }
-        });
-
-        // Inicializar
-        updateProcessButton();
-
-    })();
-</script>
-
-</body>
-</html>
+                let image
